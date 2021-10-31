@@ -1,0 +1,555 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>My New Hugo Site – WebAssembly</title><link>http://example.org/serverless/webassembly/</link><description>Recent content in WebAssembly on My New Hugo Site</description><generator>Hugo -- gohugo.io</generator><language>zh</language><lastBuildDate>Tue, 26 Oct 2021 16:19:30 +0800</lastBuildDate><atom:link href="http://example.org/serverless/webassembly/index.xml" rel="self" type="application/rss+xml"/><item><title>Serverless: 基于WebAsssembly的Serverless探索2：相关项目分析</title><link>http://example.org/serverless/webassembly/wasm2/</link><pubDate>Sat, 16 Oct 2021 12:59:01 +0800</pubDate><guid>http://example.org/serverless/webassembly/wasm2/</guid><description>
+&lt;h3 id="背景">背景&lt;/h3>
+&lt;h4 id="云原生正在成为新的基础设施">云原生正在成为新的基础设施&lt;/h4>
+&lt;p>云原生技术有利于各组织在公有云、私有云和混合云等新型动态环境中，构建和运行可弹性扩展的应用。云原生向下封装资源，将复杂性下沉到基础设施层，加速了应用与基础设施资源之间的解耦，向上支撑应用，让开发者更关注业务价值，解放了开发者的生产力。业务与企业运维能够依托于云原生所提供的基础设施，实现智能升级价值，充分释放云计算红利，云原生技术正在成为全新的生产力工具。&lt;/p>
+&lt;h4 id="什么是serverless">什么是serverless&lt;/h4>
+&lt;p>无服务器架构应用仅在需要时启动。有事件触发应用代码运行时，公共云提供商才会为这一代码分配资源。该代码执行结束后，用户便不再付费。除了成本与效率上的优势外，进一步释放了云计算的能力，将运维、安全、可用性、可伸缩性等需求下沉到基础设施实现。无服务器也能将开发人员从运维相关的琐碎日常任务中解放出来。&lt;/p>
+&lt;p>程序员的工作一定是越来越简化的，对于业务开发人员来说，可以专注于业务代码开发，摆脱诸如服务器置备和管理应用程序等复杂的工作。&lt;/p>
+&lt;h4 id="为什么选择webasssembly">为什么选择WebAsssembly&lt;/h4>
+&lt;p>&lt;a href="https://webassembly.github.io/spec/core/intro/introduction.html">WebAsssembly&lt;/a>是一种安全、可移植的低层次二进制代码。它有一种紧凑的二进制格式，能够以接近原生性能的速度运行。作为应用层级的后端语言，它具有以下优点：&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/image-20211016112123586.png" alt="image-20211016112123586">&lt;/p>
+&lt;p>WebAssembly对比docker冷启动延迟可以降低90%以上，对比于js通常具有两倍的运行速度优势。其冷启动方面的延迟是它非常显著的一个优势。与faas和serverless的理念非常贴合。从下图WebAssembly与docker的一个对比上，可以看到它在冷启动延迟和速度方面均具有独特的优势。&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/wasmvsdocker.png" alt="image-wasmvsdocker">&lt;/p>
+&lt;h4 id="istioenvoy与webassembly结合">istio（envoy）与WebAssembly结合&lt;/h4>
+&lt;h4 id="dapr与webasssembly结合">dapr与WebAsssembly结合&lt;/h4>
+&lt;p>最初了解WebAsssembly还是通过易立的这篇&lt;a href="https://developer.aliyun.com/article/783864">WebAssembly + Dapr = 下一代云原生运行时?&lt;/a>&lt;/p>
+&lt;p>作为dapr的社区成员，本身对dapr也非常了解，加上公司内部也在使用dapr的某些功能。我对dapr+WebAsssembly模式的前景还是非常看好的。&lt;/p>
+&lt;h3 id="proxy-wasm">proxy-wasm&lt;/h3>
+&lt;h4 id="简介">简介&lt;/h4>
+&lt;p>前面说到，istio使用WebAsssembly动态扩展其数据面功能。只要遵循其标准的WebAsssembly程序都可以在运行时被动态加载运行。那么这个标准是什么标准呢？这样就有了proxy-wasm，&lt;/p>
+&lt;h4 id="适配">适配&lt;/h4>
+&lt;h3 id="dapr-wasm">dapr-wasm&lt;/h3>
+&lt;h4 id="简介-1">简介&lt;/h4>
+&lt;p>second state 发布了一个&lt;a href="https://github.com/second-state/dapr-wasm">dapr-wasm&lt;/a> 的项目，这个项目是结合dapr和wasmedge提供的一个图片识别的例子。跟项目的简介说的一样，这是一个模板项目，用于演示如何在使用 dapr作为sidecar 运行 WebAssembly 的微服务。&lt;/p>
+&lt;p>我大致看了一下go的源码，虽然代码量很少，但是为了这个demo的运行，背后还是有一些工作的。首先是wasm正常运行所需要的ABI，包括图片相关的和Tensorflow相关的导入函数。这些方法是在go的&lt;a href="https://github.com/second-state/WasmEdge-go">WasmEdge-go&lt;/a>(实际逻辑代码在&lt;a href="https://github.com/second-state/WasmEdge-image">WasmEdge-image&lt;/a>、&lt;a href="https://github.com/second-state/WasmEdge-tensorflow">WasmEdge-tensorflow&lt;/a>中)项目中封装的，通过差异化编译方式在正常编译是不附带这些方法。&lt;/p>
+&lt;p>在rust代码侧使用了两个额外的ABI sdk&lt;a href="https://github.com/rustwasm/wasm-bindgen">wasm-bindgen&lt;/a> 和适配TensorFlow的&lt;a href="https://github.com/second-state/wasmedge_tensorflow_interface">wasmedge_tensorflow_interface&lt;/a>&lt;/p>
+&lt;p>在这个项目中可以看到一个wasm项目的几个基础点。制定交互ABI、host实现、目标语言sdk实现、项目引用sdk编写业务逻辑编译为wasm。在本项目中，应用与dapr进行结合，首先dapr作为应用的运行时负责应用与外部的交互（在此项目中体现较少），host加载wasm整体作为一个应用对外提供服务。&lt;/p>
+&lt;h4 id="搭建及运行">搭建及运行&lt;/h4>
+&lt;p>跟随&lt;a href="https://github.com/second-state/dapr-wasm#3-prerequisites">项目说明&lt;/a>进行预装软件的安装以及构建及运行项目。&lt;/p>
+&lt;p>这里有几点额外说明一下。首先在安装环境和预装软件的时候，使用国内的服务器会非常慢所以可能需要一定的科学上网的手段，或者直接看下安装脚本将必要的文件/软件本地下载并上传到服务器(由于下载的东西比较多，所以不太推荐根据脚本手动下载并上传)。或者使用国外的服务器下载过程就非常丝滑。&lt;/p>
+&lt;p>在运行的时候推荐的命令是阻塞式的，如果你想只开一个命令行窗口把所有必要的软件运行起来，你可以将其后台运行（并将控制台输出重定向到文件）。&lt;/p>
+&lt;pre tabindex="0">&lt;code>make run-api-go &amp;amp; ## Run the image-api-go
+make run-api-rs &amp;amp; ## Run the image-api-rs
+make run-web &amp;amp; ## Run the Web port service
+&lt;/code>&lt;/pre>&lt;p>如果你对某个库有代码修改，想要重新运行，你可以通过以下方式：&lt;/p>
+&lt;pre tabindex="0">&lt;code>dapr list
+&lt;/code>&lt;/pre>&lt;pre tabindex="0">&lt;code> APP ID HTTP PORT GRPC PORT APP PORT COMMAND AGE CREATED PID
+image-api-rs 3502 46317 9004 ./target/release/... 20h 2021-10-12 13:31.33 2327077
+image-api-go 3501 42157 9003 ./image-api-go 20h 2021-10-12 13:32.25 2327404
+go-web-port 3500 46121 8080 ./web-port 20h 2021-10-12 13:32.44 2327618
+&lt;/code>&lt;/pre>&lt;p>以重新运行前端为例，其app id为go-web-port,将其先stop然后重新编译运行即可&lt;/p>
+&lt;pre tabindex="0">&lt;code>dapr stop go-web-port
+make build-web
+make run-web
+&lt;/code>&lt;/pre>&lt;h4 id="效果">效果&lt;/h4>
+&lt;p>运行时会启动3个daprsidecar和3个项目的进程分别为web、go和rust项目。前端项目运行在8080端口通过dapr访问go项目后端api，对图片进行识别。&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/image-20211012152207326.png" alt="image-20211012152207326">&lt;/p>
+&lt;h4 id="压测">压测&lt;/h4>
+&lt;p>主要目的是想通过压测查看是否存在内存泄露现象，所以对于压测的次数和时间没有精确要求控制。而且请求会附带图片参数，通过ab和wrk构造压测请求较为麻烦。所以偷懒一下，直接在web-port子项中改造下发送请求的地方，每次点击额外发送100条请求。通过top来查看内存占用情况。由于可能会重启后端服务其pid会变，linux下可以通过运行&lt;code>top -p $(ps -ef | grep ./image-api-go | grep -v grep | grep -v dapr | awk '{print $2}')&lt;/code>&lt;/p>
+&lt;p>发送前记录&lt;/p>
+&lt;pre tabindex="0">&lt;code>top - 10:25:41 up 24 days, 18:14, 2 users, load average: 2.46, 1.23, 0.68
+Tasks: 1 total, 0 running, 1 sleeping, 0 stopped, 0 zombie
+%Cpu(s): 0.8 us, 0.8 sy, 0.0 ni, 98.3 id, 0.0 wa, 0.0 hi, 0.1 si, 0.0 st
+MiB Mem : 7692.5 total, 178.5 free, 1577.7 used, 5936.3 buff/cache
+MiB Swap: 0.0 total, 0.0 free, 0.0 used. 5839.4 avail Mem
+PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND
+2327420 root 20 0 2993084 694812 72148 S 0.0 8.8 5:27.18 image-api-go
+&lt;/code>&lt;/pre>&lt;p>101次请求运行完成后记录：&lt;/p>
+&lt;pre tabindex="0">&lt;code>top - 10:26:02 up 24 days, 18:15, 2 users, load average: 4.31, 1.73, 0.85
+Tasks: 1 total, 0 running, 1 sleeping, 0 stopped, 0 zombie
+%Cpu(s): 1.0 us, 0.8 sy, 0.0 ni, 98.1 id, 0.0 wa, 0.0 hi, 0.1 si, 0.0 st
+MiB Mem : 7692.5 total, 174.3 free, 1581.7 used, 5936.4 buff/cache
+MiB Swap: 0.0 total, 0.0 free, 0.0 used. 5835.4 avail Mem
+PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND
+2327420 root 20 0 2993084 697244 72148 S 0.0 8.9 6:01.23 image-api-go
+&lt;/code>&lt;/pre>&lt;p>增长2432K。每次内存增长并不稳定，最小大概200k，大部分在1-2M左右。（等待所有请求完成后记录的内存大小，运行时的内存峰值在七百多M）&lt;/p>
+&lt;p>此问题已经给相关项目提了issue，正在排查解决中。&lt;/p>
+&lt;h3 id="写在最后">写在最后&lt;/h3>
+&lt;p>wasm已经展现出来了其强大的生命力。即使是处于一个早期阶段，对后端和多语言的各项支持还不是很完善，但是因为其美好的前景，在云原生领域被广泛的接纳。已经有越来越多的webassembly相关项目进入到了cncf中。&lt;/p>
+&lt;p>从上面的案例可以看出，webassembly作为后端程序被使用时，整体程序架构类似于下图：&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/wasm_code_structure.png" alt="image-20211015145237598">&lt;/p>
+&lt;p>其核心是ABI interface的制定，在不同的细分领域可能会有不同的ABI标准。比如在语言层面交互时可能会是WASI，在代理中间件场景就是proxy-wasm，与dapr运行时交互的业务wasm代码可能会在未来发展出dapr-wasm abi。&lt;/p>
+&lt;p>在制定完成ABI之后用于编译成wasm的语言，比如c、rust、go等就需要按照abi标准去实现和调用外部函数。这部分胶水代码对于同一个语言来说都是一模一样的，而且在大部分场景下完整的实现完成都会有一定的复杂性，所以自然而然的就会产生不同语言自己的clientSDK。&lt;/p>
+&lt;p>对于wasm的host程序来说也是一样的，需要实现ABI中定义的导入函数，并将对wasm内的函数调用封装成自身语言的函数，对外提供。这样程序只需要集成ABI host Impl代码，即可像调用本地函数一样调用wasm内实现的函数。&lt;/p>
+&lt;p>因此我觉得在未来，wasm在各个领域的争夺必有一项是关于自身领域ABI标准规范的话语权的争夺。当然也有可能WASI博取百家之长成为一套完备的ABI规范。&lt;/p></description></item><item><title>Serverless: 使用Docker工具在WasmEdge中管理WebAssembly应用程序</title><link>http://example.org/serverless/webassembly/manage-wasm-using-docker/</link><pubDate>Tue, 26 Oct 2021 16:19:30 +0800</pubDate><guid>http://example.org/serverless/webassembly/manage-wasm-using-docker/</guid><description>
+&lt;p>开发人员可以利用DockerHub和CRI-O等Docker工具部署、管理和运行轻量级WebAssembly应用，这些应用使用&lt;a href="https://github.com/WasmEdge/WasmEdge">WasmEdge&lt;/a>运行时。虽然 WebAssembly 应用可以由多种编程语言编写，但 Rust 是迄今为止最安全、最快的 选择。&lt;/p>
+&lt;blockquote>
+&lt;p>WasmEdge 是&lt;a href="https://www.cncf.io/sandbox-projects/">由 CNCF&lt;/a>（云原生计算基金会）托管的高级 WebAssembly 运行时，是边缘计算应用程序的执行沙箱。&lt;/p>
+&lt;/blockquote>
+&lt;p>虽然 WebAssembly 最初是作为浏览器应用程序的运行时而发明的，但其轻量级和高性能的沙箱设计使其成为通用应用程序容器的一个有吸引力的选择。&lt;/p>
+&lt;blockquote>
+&lt;p>If WASM+WASI existed in 2008, we wouldn&amp;rsquo;t have needed to create Docker. — Solomon Hykes, co-founder of Docker&lt;/p>
+&lt;/blockquote>
+&lt;p>与 Docker 相比，&lt;a href="https://www.infoq.com/articles/arm-vs-x86-cloud-performance/">WebAssembly 的启动速度可以提高 100 倍&lt;/a>，内存和磁盘占用空间要小得多，并且具有更好定义的安全沙箱。然而，权衡是 WebAssembly 需要自己的语言 SDK 和编译器工具链，使其成为比 Docker 更受限制的开发人员环境。WebAssembly 越来越多地用于难以部署 Docker 或应用程序性能至关重要的边缘计算场景。&lt;/p>
+&lt;p>Docker 的一大优势是其丰富的工具生态系统。在 WasmEdge，我们希望为我们的开发人员带来类似 Docker 的工具。为了实现这一点，我们为 CRI-O 创建了一个名为&lt;a href="https://github.com/second-state/crunw">crunw&lt;/a>的替代运行&lt;a href="https://github.com/second-state/crunw">器&lt;/a>，以将 WebAssembly 字节码程序作为 Docker 映像文件加载和运行。&lt;/p>
+&lt;div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+&lt;iframe src="https://www.youtube.com/embed/lr4LsOnqaLY" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" allowfullscreen title="YouTube Video">&lt;/iframe>
+&lt;/div>
+&lt;h4 id="安装webassembly-runner-crunw">安装WebAssembly runner crunw&lt;/h4>
+&lt;p>首先，需要安装&lt;a href="https://cri-o.io/">CRI-O &lt;/a>，&lt;a href="https://github.com/kubernetes-sigs/cri-tools">crictl&lt;/a>，&lt;a href="https://github.com/containernetworking/plugins">containernetworking-插件&lt;/a>，和&lt;a href="https://github.com/containers/buildah">buildah&lt;/a>或&lt;a href="https://github.com/docker/cli">docker&lt;/a>两者其一。在 Ubuntu 20.04 上，您只需运行以下脚本即可。这里面涉及到一些系统库，所以您可能需要以&lt;code>sudo&lt;/code>来运行指令。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e"># Install CRI-O&lt;/span>
+export OS&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;xUbuntu_20.04&amp;#34;&lt;/span>
+export VERSION&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;1.21&amp;#34;&lt;/span>
+apt update
+apt install -y libseccomp2 &lt;span style="color:#f92672">||&lt;/span> sudo apt update -y libseccomp2
+echo &lt;span style="color:#e6db74">&amp;#34;deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/&lt;/span>$OS&lt;span style="color:#e6db74">/ /&amp;#34;&lt;/span> &amp;gt; /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+echo &lt;span style="color:#e6db74">&amp;#34;deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/&lt;/span>$VERSION&lt;span style="color:#e6db74">/&lt;/span>$OS&lt;span style="color:#e6db74">/ /&amp;#34;&lt;/span> &amp;gt; /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | apt-key add -
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
+apt-get update
+apt-get install criu libyajl2
+apt-get install cri-o cri-o-runc cri-tools containernetworking-plugins
+systemctl start crio
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>您还需要安装&lt;a href="https://github.com/WasmEdge/WasmEdge/blob/master/docs/install.md">WasmEdge Runtime&lt;/a>来运行 WebAssembly 程序。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e"># Instal WasmEdge&lt;/span>
+wget -q https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh
+bash install.sh --path&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;/usr/local&amp;#34;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>接下来，安装&lt;code>crunw&lt;/code>，以下命令为 Ubuntu 20.04系统的命令，以使 CRI-O 使用 WasmEdge 来运行容器内wasm程序。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e"># Install CRUNW&lt;/span>
+wget https://github.com/second-state/crunw/releases/download/1.0-wasmedge/crunw_1.0-wasmedge+dfsg-1_amd64.deb
+dpkg -i crunw_1.0-wasmedge+dfsg-1_amd64.deb
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>现在，您需要修改两个配置文件，以便 CRI-O 找到并&lt;code>crunw&lt;/code>用作默认运行时。在进行&lt;code>/etc/crio/crio.conf&lt;/code>以下更改。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#f92672">[&lt;/span>crio.runtime&lt;span style="color:#f92672">]&lt;/span>
+default_runtime &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;crunw&amp;#34;&lt;/span>
+&lt;span style="color:#75715e"># 如果pause镜像拉取有问题，你可以手动拉取然后上传到你自己的dockerhub上，然后配置为自己的源进行拉取。否则不需要添加以下内容自定义pause镜像。&lt;/span>
+&lt;span style="color:#f92672">[&lt;/span>crio.image&lt;span style="color:#f92672">]&lt;/span>
+insecure_registries &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#f92672">[&lt;/span>&lt;span style="color:#e6db74">&amp;#34;docker.io&amp;#34;&lt;/span>&lt;span style="color:#f92672">]&lt;/span>
+pause_image &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;docker.io/yourownname/pause:3.5&amp;#34;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后，在&lt;code>/etc/crio/crio.conf.d/01-crio-runc.conf&lt;/code>文件中，添加以下内容。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#f92672">[&lt;/span>crio.runtime.runtimes.runc&lt;span style="color:#f92672">]&lt;/span>
+runtime_path &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;/usr/lib/cri-o-runc/sbin/runc&amp;#34;&lt;/span>
+runtime_type &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;oci&amp;#34;&lt;/span>
+runtime_root &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;/run/runc&amp;#34;&lt;/span>
+&lt;span style="color:#75715e"># The above is the original content&lt;/span>
+&lt;span style="color:#75715e"># Add our crunw runtime here&lt;/span>
+&lt;span style="color:#f92672">[&lt;/span>crio.runtime.runtimes.crunw&lt;span style="color:#f92672">]&lt;/span>
+runtime_path &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;/usr/bin/crun&amp;#34;&lt;/span>
+runtime_type &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;oci&amp;#34;&lt;/span>
+runtime_root &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;/run/crunw&amp;#34;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>最后，重新启动&lt;code>cri-o&lt;/code>以使新的 WebAssembly 运行器生效。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">sudo systemctl restart crio
+&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="从rust项目编译wasm程序">从rust项目编译wasm程序&lt;/h4>
+&lt;blockquote>
+&lt;p>如果对源码没有修改，而且只想看运行效果，那么可以跳过这一步，直接使用其提供的镜像。&lt;/p>
+&lt;/blockquote>
+&lt;p>你可以下载&lt;a href="https://github.com/second-state/wasm-learning/tree/master/cli/wasi">git仓&lt;/a>，友情提示如果你在国内不建议，因为仓库大概有400多M。或者可以按照以下步骤创建一个rust项目并自行编译二进制文件（但是你需要已经安装了rust）&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">mkdir rustwasmfiledemo &lt;span style="color:#f92672">&amp;amp;&amp;amp;&lt;/span> cd rustwasmfiledemo
+cargo init
+vim src/main.rs
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>用以下内容替换原有内容&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">use rand::prelude::*;
+use std::fs;
+use std::fs::File;
+use std::io::&lt;span style="color:#f92672">{&lt;/span>Write, Read&lt;span style="color:#f92672">}&lt;/span>;
+use std::env;
+fn main&lt;span style="color:#f92672">()&lt;/span> &lt;span style="color:#f92672">{&lt;/span>
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;Random number: {}&amp;#34;&lt;/span>, get_random_i32&lt;span style="color:#f92672">())&lt;/span>;
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;Random bytes: {:?}&amp;#34;&lt;/span>, get_random_bytes&lt;span style="color:#f92672">())&lt;/span>;
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;{}&amp;#34;&lt;/span>, echo&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;This is from a main function&amp;#34;&lt;/span>&lt;span style="color:#f92672">))&lt;/span>;
+print_env&lt;span style="color:#f92672">()&lt;/span>;
+create_file&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;tmp.txt&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;This is in a file&amp;#34;&lt;/span>&lt;span style="color:#f92672">)&lt;/span>;
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;File content is {}&amp;#34;&lt;/span>, read_file&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;tmp.txt&amp;#34;&lt;/span>&lt;span style="color:#f92672">))&lt;/span>;
+del_file&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;tmp.txt&amp;#34;&lt;/span>&lt;span style="color:#f92672">)&lt;/span>;
+&lt;span style="color:#f92672">}&lt;/span>
+pub fn get_random_i32&lt;span style="color:#f92672">()&lt;/span> -&amp;gt; i32 &lt;span style="color:#f92672">{&lt;/span>
+let x: i32 &lt;span style="color:#f92672">=&lt;/span> random&lt;span style="color:#f92672">()&lt;/span>;
+&lt;span style="color:#66d9ef">return&lt;/span> x;
+&lt;span style="color:#f92672">}&lt;/span>
+pub fn get_random_bytes&lt;span style="color:#f92672">()&lt;/span> -&amp;gt; Vec&amp;lt;u8&amp;gt; &lt;span style="color:#f92672">{&lt;/span>
+let mut rng &lt;span style="color:#f92672">=&lt;/span> thread_rng&lt;span style="color:#f92672">()&lt;/span>;
+let mut arr &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#f92672">[&lt;/span>0u8; 128&lt;span style="color:#f92672">]&lt;/span>;
+rng.fill&lt;span style="color:#f92672">(&lt;/span>&amp;amp;mut arr&lt;span style="color:#f92672">[&lt;/span>..&lt;span style="color:#f92672">])&lt;/span>;
+&lt;span style="color:#66d9ef">return&lt;/span> arr.to_vec&lt;span style="color:#f92672">()&lt;/span>;
+&lt;span style="color:#f92672">}&lt;/span>
+pub fn echo&lt;span style="color:#f92672">(&lt;/span>content: &amp;amp;str&lt;span style="color:#f92672">)&lt;/span> -&amp;gt; String &lt;span style="color:#f92672">{&lt;/span>
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;Printed from wasi: {}&amp;#34;&lt;/span>, content&lt;span style="color:#f92672">)&lt;/span>;
+&lt;span style="color:#66d9ef">return&lt;/span> content.to_string&lt;span style="color:#f92672">()&lt;/span>;
+&lt;span style="color:#f92672">}&lt;/span>
+pub fn print_env&lt;span style="color:#f92672">()&lt;/span> &lt;span style="color:#f92672">{&lt;/span>
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;The env vars are as follows.&amp;#34;&lt;/span>&lt;span style="color:#f92672">)&lt;/span>;
+&lt;span style="color:#66d9ef">for&lt;/span> &lt;span style="color:#f92672">(&lt;/span>key, value&lt;span style="color:#f92672">)&lt;/span> in env::vars&lt;span style="color:#f92672">()&lt;/span> &lt;span style="color:#f92672">{&lt;/span>
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;{}: {}&amp;#34;&lt;/span>, key, value&lt;span style="color:#f92672">)&lt;/span>;
+&lt;span style="color:#f92672">}&lt;/span>
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;The args are as follows.&amp;#34;&lt;/span>&lt;span style="color:#f92672">)&lt;/span>;
+&lt;span style="color:#66d9ef">for&lt;/span> argument in env::args&lt;span style="color:#f92672">()&lt;/span> &lt;span style="color:#f92672">{&lt;/span>
+println!&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;{}&amp;#34;&lt;/span>, argument&lt;span style="color:#f92672">)&lt;/span>;
+&lt;span style="color:#f92672">}&lt;/span>
+&lt;span style="color:#f92672">}&lt;/span>
+pub fn create_file&lt;span style="color:#f92672">(&lt;/span>path: &amp;amp;str, content: &amp;amp;str&lt;span style="color:#f92672">)&lt;/span> &lt;span style="color:#f92672">{&lt;/span>
+let mut output &lt;span style="color:#f92672">=&lt;/span> File::create&lt;span style="color:#f92672">(&lt;/span>path&lt;span style="color:#f92672">)&lt;/span>.unwrap&lt;span style="color:#f92672">()&lt;/span>;
+output.write_all&lt;span style="color:#f92672">(&lt;/span>content.as_bytes&lt;span style="color:#f92672">())&lt;/span>.unwrap&lt;span style="color:#f92672">()&lt;/span>;
+&lt;span style="color:#f92672">}&lt;/span>
+pub fn read_file&lt;span style="color:#f92672">(&lt;/span>path: &amp;amp;str&lt;span style="color:#f92672">)&lt;/span> -&amp;gt; String &lt;span style="color:#f92672">{&lt;/span>
+let mut f &lt;span style="color:#f92672">=&lt;/span> File::open&lt;span style="color:#f92672">(&lt;/span>path&lt;span style="color:#f92672">)&lt;/span>.unwrap&lt;span style="color:#f92672">()&lt;/span>;
+let mut s &lt;span style="color:#f92672">=&lt;/span> String::new&lt;span style="color:#f92672">()&lt;/span>;
+match f.read_to_string&lt;span style="color:#f92672">(&lt;/span>&amp;amp;mut s&lt;span style="color:#f92672">)&lt;/span> &lt;span style="color:#f92672">{&lt;/span>
+Ok&lt;span style="color:#f92672">(&lt;/span>_&lt;span style="color:#f92672">)&lt;/span> &lt;span style="color:#f92672">=&lt;/span>&amp;gt; s,
+Err&lt;span style="color:#f92672">(&lt;/span>e&lt;span style="color:#f92672">)&lt;/span> &lt;span style="color:#f92672">=&lt;/span>&amp;gt; e.to_string&lt;span style="color:#f92672">()&lt;/span>,
+&lt;span style="color:#f92672">}&lt;/span>
+&lt;span style="color:#f92672">}&lt;/span>
+pub fn del_file&lt;span style="color:#f92672">(&lt;/span>path: &amp;amp;str&lt;span style="color:#f92672">)&lt;/span> &lt;span style="color:#f92672">{&lt;/span>
+fs::remove_file&lt;span style="color:#f92672">(&lt;/span>path&lt;span style="color:#f92672">)&lt;/span>.expect&lt;span style="color:#f92672">(&lt;/span>&lt;span style="color:#e6db74">&amp;#34;Unable to delete&amp;#34;&lt;/span>&lt;span style="color:#f92672">)&lt;/span>;
+&lt;span style="color:#f92672">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">vim Cargo.toml
+&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#f92672">[[&lt;/span>bin&lt;span style="color:#f92672">]]&lt;/span>
+name &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;wasi_example_main&amp;#34;&lt;/span>
+path &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;src/main.rs&amp;#34;&lt;/span>
+&lt;span style="color:#f92672">[&lt;/span>dependencies&lt;span style="color:#f92672">]&lt;/span>
+rand &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;0.7.3&amp;#34;&lt;/span>
+wasm-bindgen &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;=0.2.61&amp;#34;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>执行编译命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">rustwasmc build --enable-aot
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>wasm文件会被编译在pkg目录下。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">cd pkg/
+vim Dockerfile
+&lt;span style="color:#75715e"># 添加以下内容&lt;/span>
+FROM scratch
+ADD wasi_example_main.wasm .
+CMD &lt;span style="color:#f92672">[&lt;/span>&lt;span style="color:#e6db74">&amp;#34;wasi_example_main.wasm&amp;#34;&lt;/span>&lt;span style="color:#f92672">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建image并推送到dockerhub仓库&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e"># 你需要修改hydai为自己的dockerhub用户名&lt;/span>
+chmod &lt;span style="color:#ae81ff">777&lt;/span> wasi_example_main.wasm
+sudo docker build -f Dockerfile -t hydai/wasm-wasi-example:latest .
+sudo docker push hydai/wasm-wasi-example:latest
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>接下来你可以 Docker 工具（例如 ）&lt;code>crictl&lt;/code>将发布的 wasm 镜像拉下来。下面是我们发布的 wasm 文件图像的示例。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">sudo crictl pull docker.io/hydai/wasm-wasi-example
+&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="使用-cri-o-启动-wasm-应用程序">使用 CRI-O 启动 Wasm 应用程序&lt;/h4>
+&lt;p>要启动并运行 wasm 文件，您需要为 CRI-O 创建两个配置文件。创建&lt;code>container_wasi.json&lt;/code>文件并添加以下内容。配置 CRI-O 运行时从 Docker 存储库中提取 wasm 文件映像的位置。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-json" data-lang="json">{
+&lt;span style="color:#f92672">&amp;#34;metadata&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;name&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;podsandbox1-wasm-wasi&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;image&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;image&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;hydai/wasm-wasi-example:latest&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;args&amp;#34;&lt;/span>: [
+&lt;span style="color:#e6db74">&amp;#34;/wasi_example_main.wasm&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;50000000&amp;#34;&lt;/span>
+],
+&lt;span style="color:#f92672">&amp;#34;working_dir&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;/&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;envs&amp;#34;&lt;/span>: [],
+&lt;span style="color:#f92672">&amp;#34;labels&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;tier&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;backend&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;annotations&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;pod&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;podsandbox1&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;log_path&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;stdin&amp;#34;&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;stdin_once&amp;#34;&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;tty&amp;#34;&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;linux&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;resources&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;memory_limit_in_bytes&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">209715200&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;cpu_period&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">10000&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;cpu_quota&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">20000&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;cpu_shares&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">512&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;oom_score_adj&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">30&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;cpuset_cpus&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;0&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;cpuset_mems&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;0&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;security_context&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;namespace_options&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;pid&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;readonly_rootfs&amp;#34;&lt;/span>: &lt;span style="color:#66d9ef">false&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;capabilities&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;add_capabilities&amp;#34;&lt;/span>: [
+&lt;span style="color:#e6db74">&amp;#34;sys_admin&amp;#34;&lt;/span>
+]
+}
+}
+}
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后创建&lt;code>sandbox_config.json&lt;/code>文件并添加以下内容。它定义了运行 wasm 应用程序的沙箱环境。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-json" data-lang="json">{
+&lt;span style="color:#f92672">&amp;#34;metadata&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;name&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;podsandbox12&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;uid&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;redhat-test-crio&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;namespace&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;redhat.test.crio&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;attempt&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;hostname&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;crictl_host&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;log_directory&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;dns_config&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;searches&amp;#34;&lt;/span>: [
+&lt;span style="color:#e6db74">&amp;#34;8.8.8.8&amp;#34;&lt;/span>
+]
+},
+&lt;span style="color:#f92672">&amp;#34;port_mappings&amp;#34;&lt;/span>: [],
+&lt;span style="color:#f92672">&amp;#34;resources&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;cpu&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;limits&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">3&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;requests&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">2&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;memory&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;limits&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">50000000&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;requests&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">2000000&lt;/span>
+}
+},
+&lt;span style="color:#f92672">&amp;#34;labels&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;group&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;test&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;annotations&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;owner&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;hmeng&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;security.alpha.kubernetes.io/seccomp/pod&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;unconfined&amp;#34;&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;linux&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;cgroup_parent&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;pod_123-456.slice&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;security_context&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;namespace_options&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;network&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">0&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;pid&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">1&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;ipc&amp;#34;&lt;/span>: &lt;span style="color:#ae81ff">0&lt;/span>
+},
+&lt;span style="color:#f92672">&amp;#34;selinux_options&amp;#34;&lt;/span>: {
+&lt;span style="color:#f92672">&amp;#34;user&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;system_u&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;role&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;system_r&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;type&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;svirt_lxc_net_t&amp;#34;&lt;/span>,
+&lt;span style="color:#f92672">&amp;#34;level&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;s0:c4,c5&amp;#34;&lt;/span>
+}
+}
+}
+}
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>通过以下例子创建一个CRI-O pod&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e"># Create the POD. Output will be different from example.&lt;/span>
+sudo crictl runp sandbox_config.json
+7992e75df00cc1cf4bff8bff660718139e3ad973c7180baceb9c84d074b516a4
+&lt;span style="color:#75715e"># Set a helper variable for later use.&lt;/span>
+export POD_ID&lt;span style="color:#f92672">=&lt;/span>7992e75df00cc1cf4bff8bff660718139e3ad973c7180baceb9c84d074b516a4
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>由于我通过minikube启动的k8s，没有启动dockershim，所以在执行上述命令时报以下错误，所以我将其替换成了containerd。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">FATA&lt;span style="color:#f92672">[&lt;/span>0030&lt;span style="color:#f92672">]&lt;/span> run pod sandbox: rpc error: code &lt;span style="color:#f92672">=&lt;/span> Unknown desc &lt;span style="color:#f92672">=&lt;/span> failed to get sandbox image &lt;span style="color:#e6db74">&amp;#34;k8s.gcr.io/pause:3.2&amp;#34;&lt;/span>: failed to pull image &lt;span style="color:#e6db74">&amp;#34;k8s.gcr.io/pause:3.2&amp;#34;&lt;/span>: failed to pull and unpack image &lt;span style="color:#e6db74">&amp;#34;k8s.gcr.io/pause:3.2&amp;#34;&lt;/span>: failed to resolve reference &lt;span style="color:#e6db74">&amp;#34;k8s.gcr.io/pause:3.2&amp;#34;&lt;/span>: failed to &lt;span style="color:#66d9ef">do&lt;/span> request: Head &lt;span style="color:#e6db74">&amp;#34;https://k8s.gcr.io/v2/pause/manifests/3.2&amp;#34;&lt;/span>: dial tcp 74.125.23.82:443: i/o timeout
+&lt;span style="color:#75715e"># 或者&lt;/span>
+FATA&lt;span style="color:#f92672">[&lt;/span>0002&lt;span style="color:#f92672">]&lt;/span> connect: connect endpoint &lt;span style="color:#e6db74">&amp;#39;unix:///var/run/dockershim.sock&amp;#39;&lt;/span>, make sure you are running as root and the endpoint has been started: context deadline exceeded
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>那么我们查一下&lt;a href="https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md">crictl文档&lt;/a>可以看出来我们可以采用以下方式：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">$ vim /etc/crictl.yaml
+runtime-endpoint: unix:///var/run/dockershim.sock
+image-endpoint: unix:///var/run/dockershim.sock
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>由于国内拉取k8s pause镜像有问题，因此将&lt;code>unix:///var/run/dockershim.sock&lt;/code>改为&lt;code>unix:///run/crio/crio.sock&lt;/code>。然后。重新执行上述命令。&lt;/p>
+&lt;p>切换成containerd我们要重新拉一下镜像&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">sudo crictl pull docker.io/hydai/wasm-wasi-example
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>从pod中创建一个容器来运行wasm字节码程序。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e"># Create the container instance. Output will be different from example.&lt;/span>
+sudo crictl create $POD_ID container_wasi.json sandbox_config.json
+1d056e4a8a168f0c76af122d42c98510670255b16242e81f8e8bce8bd3a4476f
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>最后，启动容器并查看wasm应用程序输出&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">&lt;span style="color:#75715e"># List the container, the state should be `Created`&lt;/span>
+sudo crictl ps -a
+CONTAINER IMAGE CREATED STATE NAME ATTEMPT POD ID
+1d056e4a8a168 hydai/wasm-wasi-example:latest About a minute ago Created podsandbox1-wasm-wasi &lt;span style="color:#ae81ff">0&lt;/span> 7992e75df00cc
+&lt;span style="color:#75715e"># Start the container&lt;/span>
+sudo crictl start 1d056e4a8a168f0c76af122d42c98510670255b16242e81f8e8bce8bd3a4476f
+1d056e4a8a168f0c76af122d42c98510670255b16242e81f8e8bce8bd3a4476f
+&lt;span style="color:#75715e"># Check the container status again.# If the container is not finishing its job, you will see the Running state# Because this example is very tiny. You may see Exited at this moment.&lt;/span>
+sudo crictl ps -a
+CONTAINER IMAGE CREATED STATE NAME ATTEMPT POD ID
+1d056e4a8a168 hydai/wasm-wasi-example:latest About a minute ago Running podsandbox1-wasm-wasi &lt;span style="color:#ae81ff">0&lt;/span> 7992e75df00cc
+&lt;span style="color:#75715e"># When the container is finished. You can see the state becomes Exited.&lt;/span>
+sudo crictl ps -a
+CONTAINER IMAGE CREATED STATE NAME ATTEMPT POD ID
+1d056e4a8a168 hydai/wasm-wasi-example:latest About a minute ago Exited podsandbox1-wasm-wasi &lt;span style="color:#ae81ff">0&lt;/span> 7992e75df00cc
+&lt;span style="color:#75715e"># Check the container&amp;#39;s logs&lt;/span>
+sudo crictl logs 1d056e4a8a168f0c76af122d42c98510670255b16242e81f8e8bce8bd3a4476f
+Test 1: Print Random Number
+Random number: &lt;span style="color:#ae81ff">960251471&lt;/span>
+Test 2: Print Random Bytes
+Random bytes: &lt;span style="color:#f92672">[&lt;/span>50, 222, 62, 128, 120, 26, 64, 42, 210, 137, 176, 90, 60, 24, 183, 56, 150, 35, 209, 211, 141, 146, 2, 61, 215, 167, 194, 1, 15, 44, 156, 27, 179, 23, 241, 138, 71, 32, 173, 159, 180, 21, 198, 197, 247, 80, 35, 75, 245, 31, 6, 246, 23, 54, 9, 192, 3, 103, 72, 186, 39, 182, 248, 80, 146, 70, 244, 28, 166, 197, 17, 42, 109, 245, 83, 35, 106, 130, 233, 143, 90, 78, 155, 29, 230, 34, 58, 49, 234, 230, 145, 119, 83, 44, 111, 57, 164, 82, 120, 183, 194, 201, 133, 106, 3, 73, 164, 155, 224, 218, 73, 31, 54, 28, 124, 2, 38, 253, 114, 222, 217, 202, 59, 138, 155, 71, 178, 113&lt;span style="color:#f92672">]&lt;/span>
+Test 3: Call an echo &lt;span style="color:#66d9ef">function&lt;/span>
+Printed from wasi: This is from a main &lt;span style="color:#66d9ef">function&lt;/span>
+This is from a main &lt;span style="color:#66d9ef">function&lt;/span>
+Test 4: Print Environment Variables
+The env vars are as follows.
+PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+TERM: xterm
+HOSTNAME: crictl_host
+PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+The args are as follows.
+/var/lib/containers/storage/overlay/006e7cf16e82dc7052994232c436991f429109edea14a8437e74f601b5ee1e83/merged/wasi_example_main.wasm
+&lt;span style="color:#ae81ff">50000000&lt;/span>
+Test 5: Create a file &lt;span style="color:#e6db74">`&lt;/span>/tmp.txt&lt;span style="color:#e6db74">`&lt;/span> with content &lt;span style="color:#e6db74">`&lt;/span>This is in a file&lt;span style="color:#e6db74">`&lt;/span>
+Test 6: Read the content from the previous file
+File content is This is in a file
+Test 7: Delete the previous file
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>实际运行效果:&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/runwasmedgewhitdocker.png" alt="image-20211028152632029">&lt;/p>
+&lt;h4 id="展望下一步">展望下一步&lt;/h4>
+&lt;p>在本文中，我们看到了如何使用类似 Docker 的 CRI-O 工具启动、运行和管理 WasmEdge 应用程序。&lt;/p>
+&lt;p>我们的下一步是使用 Kubernetes 来管理 WasmEdge 容器。为此，我们需要在 Kubernetes 中安装一个 runner 二进制文件，以便它可以同时支持常规 Docker 镜像和 wasm 字节码镜像。&lt;/p>
+&lt;h4 id="排错指南">排错指南&lt;/h4>
+&lt;p>在按照文档进行测试的时候遇到了一些错误，在这里记录下遇到的问题及解决方式：&lt;/p>
+&lt;h5 id="创建container报错权限不足">创建container报错权限不足&lt;/h5>
+&lt;p>创建container的时候遇到权限问题，大致猜测可能是wasm文件的权限问题，因此在docker build image之前，&lt;code>chmod 777 wasi_example_main.wasm&lt;/code>然后再执行docker build，重新推到仓库，拉取到本地。然后再执行创建container即可。以下是执行命令的报错：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">$ crictl create $POD_ID container_wasi.json sandbox_config.json
+FATA&lt;span style="color:#f92672">[&lt;/span>0000&lt;span style="color:#f92672">]&lt;/span> creating container: rpc error: code &lt;span style="color:#f92672">=&lt;/span> Unknown desc &lt;span style="color:#f92672">=&lt;/span> container create failed: open executable: Permission denied
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;a href="https://www.secondstate.io/articles/manage-webassembly-apps-in-wasmedge-using-docker-tools/">英文原文地址&lt;/a>&lt;/p></description></item><item><title>Serverless: 基于WebAsssembly的Serverless探索1:wasm概述</title><link>http://example.org/serverless/webassembly/wasm1/</link><pubDate>Sun, 17 Oct 2021 16:16:20 +0800</pubDate><guid>http://example.org/serverless/webassembly/wasm1/</guid><description>
+&lt;h3 id="一介绍">一、介绍&lt;/h3>
+&lt;h4 id="11-什么是-webassembly">1.1 什么是 WebAssembly&lt;/h4>
+&lt;blockquote>
+&lt;p>运行在沙盒中的二进制格式代码&lt;/p>
+&lt;/blockquote>
+&lt;p>WebAssembly 是一种低层次的二进制格式代码，体积小，因此加载和执行速度快。你不需要直接编写 WebAssembly 代码，而是可以从其他高级语言编译而来。**它是一种可移植且通用的二进制指令格式，用于在虚拟机中进行内存安全、沙盒执行。**可以用 C、C++、Rust、AssemblyScript、C#、Go、Swift 等多种语言编写程序，并将它们编译为 Wasm。&lt;/p>
+&lt;p>WebAssembly对比docker冷启动延迟可以降低90%以上，对比于js通常具有两倍的运行速度优势。&lt;strong>由于其冷启动快、体积小、执行速度快、灵活性高、安全性高和具有可移植性，因此正在被逐渐被应用于serverless和边缘计算领域。&lt;/strong>&lt;/p>
+&lt;h4 id="12-系统接口">1.2 系统接口&lt;/h4>
+&lt;h5 id="121-wasi">1.2.1 WASI&lt;/h5>
+&lt;p>&lt;strong>WebAssembly System Interface (WASI)是一套标准的函数接口定义，作为wasm与“系统”进行交互的标准函数；类似于操作系统为运行的程序提供的标准调用接口一样。&lt;/strong> 这个接口的设计考虑到了Wasm 的目标——可移植性和安全性。WASI 是二进制兼容的，这意味着 Wasm二进制文件可以在不同的具体系统（如 Linux 和 Windows）之间移植，也可以在不同浏览器之间移植。Wasm运行时应该实现这些接口并将其转换为底层的具体操作系统。WASI 还在安全性方面进行了创新，超越了经典的粗粒度访问控制（由于中间存在运行时抽象，所以在运行时中可以定义任何标准的或者自定义的访问控制）。&lt;/p>
+&lt;h5 id="122-自定义系统接口">1.2.2 自定义系统接口&lt;/h5>
+&lt;p>WebAssembly对系统的函数调用并不局限于wasi，而是取决于运行wasm的运行时宿主向WebAssembly导入了什么函数。一个比较典型的例子就是enovy和mosn目前在用的一套代理协议标准：&lt;code>proxy_abi_version_0_2_0&lt;/code>，运行时在启动wasm程序的时候，将此类函数注入，wasm中就可以直接使用这些函数了。&lt;/p>
+&lt;p>当然我们也可以任意的自定义webassembly可以从宿主系统调用的函数，你将在后面模型试验的例子里看到两个典型的例子。为WebAssembly程序提供了函数计算和网络访问两个函数。这两个函数不在任何的interface标准中，完全是我们自定义的函数。&lt;/p>
+&lt;p>下图展示了部分&lt;code>proxy_abi_version_0_2_0&lt;/code>中定义的函数，是运行时将这些函数注册给wasm的代码。&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/registerfunctions.png" alt="image-20210708135302772">&lt;/p>
+&lt;h4 id="13-导出函数">1.3 导出函数&lt;/h4>
+&lt;blockquote>
+&lt;p>利用这个特点，可以将wasm作为插件机制来使用。&lt;/p>
+&lt;/blockquote>
+&lt;p>除了WebAssembly可以调用运行时宿主提供的“系统调用”外，WebAssembly可以导出实现的函数，宿主机可以调用此函数，这类函数被称为导出函数。&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/functionoverview.png" alt="image-20210708142246927">&lt;/p>
+&lt;h4 id="wasm的安全">wasm的安全&lt;/h4>
+&lt;p>Wasm 使用故障隔离技术来沙箱执行模块。与宿主环境的互动只能通过导入的函数实现。这种机制代表了一个“安全的外部函数接口”，因为它可以与外部环境通信，但不能脱离沙箱。这是 Wasm 的一个重要安全特性。从主机的角度来看，没有导入的模块没有副作用。甚至打印 Hello World！都需要导入打印功能。同样，写入文件、网络套接字或读取时钟都需要导入。&lt;/p>
+&lt;h5 id="内存安全">内存安全&lt;/h5>
+&lt;p>在 Wasm 中，所有内存访问都仅限于模块的线性内存。该存储器与代码空间分开，可防止程序覆盖指令。程序可以只能在自己的执行环境中运行，不能逃逸。这意味着 Wasm 运行时可以安全地执行多个不受信任的模块，它们具有自己的线性内存，在同一进程内存空间中并且不需要额外的隔离。特别是，“无法在 WebAssembly 中表达对任意内存位置的读取和写入”，因为 Wasm 的内存指令使用偏移量而不是地址。此外，运行时的边界检查可确保指令仅写入线性内存，这是使 Wasm 成为一种轻量级容器技术的关键方面。&lt;/p>
+&lt;h4 id="14-代码案例">1.4 代码案例&lt;/h4>
+&lt;p>接下来以一个简单的案例了解下，其中wasm程序导出一个乘法函数。wasm运行时提供一个加法函数供wasm调用。其中wasm提供的函数是可以任意定义实现的，这一点在后面模型试验的案例中可以看到。&lt;/p>
+&lt;p>其结构及接口定义如下图所示：&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/example.png" alt="image-20210708143343468">&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/structure.png" alt="image-20210708164115373">&lt;/p>
+&lt;h5 id="141-wasm代码">1.4.1 wasm代码&lt;/h5>
+&lt;p>wasm代码中可以看到对于加法&lt;strong>add&lt;/strong>函数，只定义了函数签名，没有定义实际的逻辑，表明这个函数是一个导入的由运行时提供的函数。同时提供了&lt;strong>multiply&lt;/strong>函数，并标注这是一个导出函数，编译器会自动帮我们进行导出工作。具体的代码如下：&lt;/p>
+&lt;pre tabindex="0">&lt;code>// This calls a JS function from Go.
+func main() {
+println(&amp;quot;webassembly打印，调用加法函数2+3= &amp;quot;, add(2, 3)) // expecting 5
+}
+// This function is imported from JavaScript, as it doesn't define a body.
+// You should define a function named 'main.add' in the WebAssembly 'env'
+// module from JavaScript.
+func add(x, y int) int
+// This function is exported to JavaScript, so can be called using
+// exports.multiply() in JavaScript.
+//export multiply
+func multiply(x, y int) int {
+return x * y
+}
+&lt;/code>&lt;/pre>&lt;h5 id="142-运行时宿主代码">1.4.2 运行时宿主代码&lt;/h5>
+&lt;pre tabindex="0">&lt;code>func main() {
+// 加载wasm字节码
+pwd, _ := os.Getwd()
+path := filepath.Join(pwd, &amp;quot;../tinygowasm/number.wasm&amp;quot;)
+wasm, err := ioutil.ReadFile(filepath.Clean(path))
+// 省略具体加载的细节
+// 为webassembly提供加法函数
+importObject.Register(
+&amp;quot;env&amp;quot;,
+map[string]wasmer.IntoExtern{
+&amp;quot;main.add&amp;quot;: wasmer.NewFunction(
+store,
+wasmer.NewFunctionType(wasmer.NewValueTypes(wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32), wasmer.NewValueTypes(wasmer.I32)),
+func(args []wasmer.Value) ([]wasmer.Value, error) {
+return []wasmer.Value{wasmer.NewI32(args[0].I32() + args[1].I32())}, nil
+},
+),
+},
+)
+instance, err = wasmer.NewInstance(module, importObject)
+check(err)
+// 运行时宿主调用webassembly中定义的乘法函数
+multi, err := instance.Exports.GetFunction(&amp;quot;multiply&amp;quot;)
+check(err)
+i, err := multi(3, 5)
+check(err)
+fmt.Printf(&amp;quot;运行时调用wasm乘法函数，运算3X5= %d\n&amp;quot;, i)
+// 运行webassembly主程序，即go文件中定义的main函数
+start, err := instance.Exports.GetFunction(&amp;quot;_start&amp;quot;)
+check(err)
+start()
+}
+&lt;/code>&lt;/pre>&lt;h5 id="143-运行结果">1.4.3 运行结果&lt;/h5>
+&lt;p>可以通过控制台打印看到，无论是wasm调用运行时提供的加法函数，还是运行时调用wasm中定义的乘法函数都可以正常运行&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/result.png" alt="image-20210708144330696">&lt;/p>
+&lt;h4 id="15-应用场景及发展方向">1.5 应用场景及发展方向&lt;/h4>
+&lt;ol>
+&lt;li>对于WebAssembly的后续发展思路分为两个大方向，
+&lt;ol>
+&lt;li>第一个是对接k8s调度层（调度器底层），通过k8s来调度wasm程序的运行&lt;/li>
+&lt;li>第二个是以sidecar作为WebAssembly的运行时引擎，通过控制面来调控运行的程序。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>业务场景的思路：在抗流量设施中，或者有突发流量的场景中，可以改造成这种具有弹性的WebAssembly的运行模式。&lt;/li>
+&lt;li>通过WebAssembly实现彻底的语言无关的流量治理，使用统一的apm体系，打造新一代运行时&lt;/li>
+&lt;li>数据面策略型逻辑代码的处理：流量治理、遥测策略、安全规则校验、服务自定义策略&amp;hellip;&amp;hellip;&lt;/li>
+&lt;/ol>
+&lt;h3 id="二模型试验">二、模型试验&lt;/h3>
+&lt;p>对于数字加减的模型试验我们在介绍原理的时候已经进行过介绍了，这表明对于纯逻辑计算，无论是wasm调用运行时还是运行时调用wasm函数都是没有问题的。&lt;/p>
+&lt;p>接下来进行一个稍微复杂一些的模型试验，在现实世界中通常进行最多的就是网络请求的处理。因此在接下来的模型试验中，运行时为webassembly提供了一个“网络接口”函数&lt;code>getHttpResp&lt;/code>。这个函数的功能是接收一个url参数，并且请求此url，并将请求得到的结果返回给wasm。wasm逻辑就是调用此函数并打印此次请求的结果。&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/examplesimple.png" alt="image-20210708144948920">&lt;/p>
+&lt;h4 id="21-wasm代码">2.1 wasm代码&lt;/h4>
+&lt;p>wasm代码中定义了一个url，调用&lt;code>getHttpResp&lt;/code>函数并打印请求结果&lt;/p>
+&lt;pre tabindex="0">&lt;code>func main() {
+url := &amp;quot;http://apis.juhe.cn/ip/ip2addr&amp;quot;
+var rvs int
+var raw *byte
+st := getHttpResp(url, &amp;amp;raw, &amp;amp;rvs)
+if st != 1 {
+println(&amp;quot;请求错误,code&amp;quot;, st)
+}
+println(&amp;quot;wasm打印，调用运行时网络请求函数并打印结果:&amp;quot;, url, string(RawBytePtrToByteSlice(raw, rvs)))
+}
+func getHttpResp(s string, returnValueData **byte, returnValueSize *int) int
+&lt;/code>&lt;/pre>&lt;h4 id="22-运行时宿主代码">2.2 运行时宿主代码&lt;/h4>
+&lt;p>wasm运行时主要代码就是为wasm提供&lt;code>getHttpResp&lt;/code>函数，在接下来的代码示例中去掉在上文中提到的其他细节，主要展示提供&lt;code>getHttpResp&lt;/code>函数部分代码.此代码的主要逻辑就是先获取到传参url，请求url，将请求得到的结果拷贝到共享内存因此wasm可以从共享内存中获取请求结果。并返回wasm一个数字作为是否请求成功的标记。&lt;/p>
+&lt;pre tabindex="0">&lt;code>importObject.Register(
+&amp;quot;env&amp;quot;,
+map[string]wasmer.IntoExtern{
+&amp;quot;main.getHttpResp&amp;quot;: wasmer.NewFunction(
+store,
+wasmer.NewFunctionType(wasmer.NewValueTypes(wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32), wasmer.NewValueTypes(wasmer.I32)),
+func(args []wasmer.Value) ([]wasmer.Value, error) {
+in, bufferType, returnBufferData, returnBufferSize, _, _ := args[0].I32(), args[1].I32(), args[2].I32(), args[3].I32(), args[4].I32(), args[5].I32()
+m, err := instance.Exports.GetMemory(&amp;quot;memory&amp;quot;)
+if err != nil {
+return nil, err
+}
+mem := m.Data()
+url := string(mem[in:in+bufferType])
+res, err := http.Get(url)
+if err != nil {
+return []wasmer.Value{wasmer.NewI32(0)}, nil
+}
+byt, err := ioutil.ReadAll(res.Body)
+res.Body.Close()
+if err != nil {
+return []wasmer.Value{wasmer.NewI32(0)}, nil
+}
+blen := int32(len(byt))
+// 由于没做溢出检查，先最多取100个字符防止溢出
+if blen &amp;gt; 100 {
+blen = 100
+}
+byt = byt[:blen]
+// todo 需要check 防止 overflow
+var addrIndex int32
+malloc, err := instance.Exports.GetRawFunction(&amp;quot;malloc&amp;quot;)
+if err == nil {
+addr, err := malloc.Call(blen)
+if err != nil {
+return []wasmer.Value{wasmer.NewI32(0)}, nil
+}
+addrIndex , _ = addr.(int32)
+} else {
+addrIndex = returnBufferData + int32(blen) + 32
+}
+copy(mem[addrIndex:], byt[:blen])
+binary.LittleEndian.PutUint32(mem[returnBufferSize:], uint32(blen))
+binary.LittleEndian.PutUint32(mem[returnBufferData:], uint32(addrIndex))
+s := RawBytePtrToByteSlice((*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&amp;amp;mem)) + uintptr(addrIndex - blen))),blen)
+_=s
+watch := mem[in:addrIndex+blen]
+_=watch
+return []wasmer.Value{wasmer.NewI32(1)}, nil
+},
+),
+},
+)
+&lt;/code>&lt;/pre>&lt;h4 id="23-网络试验结果">2.3 网络试验结果&lt;/h4>
+&lt;p>程序正常运行并且在wasm中可以正常打印网络请求的结果。&lt;/p>
+&lt;p>&lt;img src="http://example.org/images/resultprint.png" alt="image-20210708150016833">&lt;/p>
+&lt;h3 id="额外说明">额外说明&lt;/h3>
+&lt;h5 id="通过共享内存交互">通过共享内存交互&lt;/h5>
+&lt;p>wasm只支持4种数据结构：int32、int64、float32、float64。当传递其他类型的数据，比如字符串时，需要通过共享内存来通信。通过&lt;/p></description></item></channel></rss>
