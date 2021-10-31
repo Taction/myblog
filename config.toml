@@ -3,7 +3,9 @@ languageCode = "zh"
 title = "My New Hugo Site"
 theme = "docsy"
 
-
+# Google Analytics
+[services.googleAnalytics]
+id = "G-GS1M9CRD3R"
 
 # Mounts
 [module]
