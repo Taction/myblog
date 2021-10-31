@@ -26,6 +26,7 @@ jobs:
 
       - run: npm install
       - run: npm install -D hugo-extended autoprefixer postcss-cli postcss
+      - run: git submodule update --init --recursive --depth 1
 
       - name: Build
         run: hugo --minify
