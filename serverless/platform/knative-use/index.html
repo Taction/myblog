@@ -1,0 +1,395 @@
+<!doctype html><html lang=en class=no-js>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=generator content="Hugo 0.88.1"><meta name=ROBOTS content="NOINDEX, NOFOLLOW">
+<link rel="shortcut icon" href=/favicons/favicon.ico>
+<link rel=apple-touch-icon href=/favicons/apple-touch-icon-180x180.png sizes=180x180>
+<link rel=icon type=image/png href=/favicons/favicon-16x16.png sizes=16x16>
+<link rel=icon type=image/png href=/favicons/favicon-32x32.png sizes=32x32>
+<link rel=icon type=image/png href=/favicons/android-36x36.png sizes=36x36>
+<link rel=icon type=image/png href=/favicons/android-48x48.png sizes=48x48>
+<link rel=icon type=image/png href=/favicons/android-72x72.png sizes=72x72>
+<link rel=icon type=image/png href=/favicons/android-96x96.png sizes=96x96>
+<link rel=icon type=image/png href=/favicons/android-144x144.png sizes=144x144>
+<link rel=icon type=image/png href=/favicons/android-192x192.png sizes=192x192>
+<title>Knative Use | Taction's Blog</title>
+<meta name=description content><meta property="og:title" content="Knative Use">
+<meta property="og:description" content="本文档主要介绍跟随官网入门教程和minikube案例运行knative的hello world。中间部分命令根据国内众所周知的网络特点做了一下适配。本篇基本未涉及原理性介绍。
+首先确认安装kind或者minikube、kubectl、kn这些必要的软件。如果你跟随本教程，那么你只需要确认安装minikube和kubectl即可。
+启动minikube 当minikube镜像拉取过慢的时候可以参考配置代理。或者通过以下命令来运行minikubeminikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'但是这样是不够的。还是无法解决minikube拉取knative镜像问题。你会发现pod的状态被卡在ImagePullBackOff状态中。
+作为一个成熟的程序员，命令行代理你肯定已经非常熟悉了。这里主要说明一下启动minikube设置的docker-env是配置在拉取镜像中通过此代理拉取。这里要注意第一要把本地代理client监听0.0.0.0，如果为了安全你可以通过网络安全组来限制只能自己的ip访问这个端口。第二将以下命令行中{your ip}替换成你主机的实际公网ip。
+# 命令行代理 export http_proxy=&#34;http://127.0.0.1:1080&#34; export https_proxy=&#34;http://127.0.0.1:1080&#34; # 启动minikube minikube start \ --image-mirror-country cn \ --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers \ --docker-env http_proxy=http://{your ip}:1080 \ --docker-env https_proxy=http://{your ip}:1080 \ --docker-env no_proxy=localhost,127.0.0.1,10.96.0.0/12,192.168.99.0/24,192.168.39.0/24 安装knative 选择要安装的版本
+export KNATIVE_VERSION=&#34;0.26.0&#34; 定义knative自己的各项CustomResourceDefinition（CRD）来扩展k8s API。
+kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE_VERSION/serving-crds.yaml kubectl wait --for=condition=Established --all crd 创建knative-serving namespace并且安装各项knative组件。在这个yaml里定义了namespace、k8s权限及绑定、一些crd资源以及knative组件deployment。
+kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE_VERSION/serving-core.yaml kubectl wait pod --timeout=-1s --for=condition=Ready -l '!job-name' -n knative-serving > /dev/null 选择你要安装的Net Kourier版本">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://taction.top/serverless/platform/knative-use/"><meta property="article:section" content="serverless">
+<meta property="article:published_time" content="2021-11-01T13:41:20+08:00">
+<meta property="article:modified_time" content="2021-11-01T13:41:20+08:00">
+<meta itemprop=name content="Knative Use">
+<meta itemprop=description content="本文档主要介绍跟随官网入门教程和minikube案例运行knative的hello world。中间部分命令根据国内众所周知的网络特点做了一下适配。本篇基本未涉及原理性介绍。
+首先确认安装kind或者minikube、kubectl、kn这些必要的软件。如果你跟随本教程，那么你只需要确认安装minikube和kubectl即可。
+启动minikube 当minikube镜像拉取过慢的时候可以参考配置代理。或者通过以下命令来运行minikubeminikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'但是这样是不够的。还是无法解决minikube拉取knative镜像问题。你会发现pod的状态被卡在ImagePullBackOff状态中。
+作为一个成熟的程序员，命令行代理你肯定已经非常熟悉了。这里主要说明一下启动minikube设置的docker-env是配置在拉取镜像中通过此代理拉取。这里要注意第一要把本地代理client监听0.0.0.0，如果为了安全你可以通过网络安全组来限制只能自己的ip访问这个端口。第二将以下命令行中{your ip}替换成你主机的实际公网ip。
+# 命令行代理 export http_proxy=&#34;http://127.0.0.1:1080&#34; export https_proxy=&#34;http://127.0.0.1:1080&#34; # 启动minikube minikube start \ --image-mirror-country cn \ --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers \ --docker-env http_proxy=http://{your ip}:1080 \ --docker-env https_proxy=http://{your ip}:1080 \ --docker-env no_proxy=localhost,127.0.0.1,10.96.0.0/12,192.168.99.0/24,192.168.39.0/24 安装knative 选择要安装的版本
+export KNATIVE_VERSION=&#34;0.26.0&#34; 定义knative自己的各项CustomResourceDefinition（CRD）来扩展k8s API。
+kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE_VERSION/serving-crds.yaml kubectl wait --for=condition=Established --all crd 创建knative-serving namespace并且安装各项knative组件。在这个yaml里定义了namespace、k8s权限及绑定、一些crd资源以及knative组件deployment。
+kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE_VERSION/serving-core.yaml kubectl wait pod --timeout=-1s --for=condition=Ready -l '!job-name' -n knative-serving > /dev/null 选择你要安装的Net Kourier版本"><meta itemprop=datePublished content="2021-11-01T13:41:20+08:00">
+<meta itemprop=dateModified content="2021-11-01T13:41:20+08:00">
+<meta itemprop=wordCount content="621">
+<meta itemprop=keywords content><meta name=twitter:card content="summary">
+<meta name=twitter:title content="Knative Use">
+<meta name=twitter:description content="本文档主要介绍跟随官网入门教程和minikube案例运行knative的hello world。中间部分命令根据国内众所周知的网络特点做了一下适配。本篇基本未涉及原理性介绍。
+首先确认安装kind或者minikube、kubectl、kn这些必要的软件。如果你跟随本教程，那么你只需要确认安装minikube和kubectl即可。
+启动minikube 当minikube镜像拉取过慢的时候可以参考配置代理。或者通过以下命令来运行minikubeminikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'但是这样是不够的。还是无法解决minikube拉取knative镜像问题。你会发现pod的状态被卡在ImagePullBackOff状态中。
+作为一个成熟的程序员，命令行代理你肯定已经非常熟悉了。这里主要说明一下启动minikube设置的docker-env是配置在拉取镜像中通过此代理拉取。这里要注意第一要把本地代理client监听0.0.0.0，如果为了安全你可以通过网络安全组来限制只能自己的ip访问这个端口。第二将以下命令行中{your ip}替换成你主机的实际公网ip。
+# 命令行代理 export http_proxy=&#34;http://127.0.0.1:1080&#34; export https_proxy=&#34;http://127.0.0.1:1080&#34; # 启动minikube minikube start \ --image-mirror-country cn \ --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers \ --docker-env http_proxy=http://{your ip}:1080 \ --docker-env https_proxy=http://{your ip}:1080 \ --docker-env no_proxy=localhost,127.0.0.1,10.96.0.0/12,192.168.99.0/24,192.168.39.0/24 安装knative 选择要安装的版本
+export KNATIVE_VERSION=&#34;0.26.0&#34; 定义knative自己的各项CustomResourceDefinition（CRD）来扩展k8s API。
+kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE_VERSION/serving-crds.yaml kubectl wait --for=condition=Established --all crd 创建knative-serving namespace并且安装各项knative组件。在这个yaml里定义了namespace、k8s权限及绑定、一些crd资源以及knative组件deployment。
+kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE_VERSION/serving-core.yaml kubectl wait pod --timeout=-1s --for=condition=Ready -l '!job-name' -n knative-serving > /dev/null 选择你要安装的Net Kourier版本">
+<link rel=preload href=/scss/main.min.be9fabc31fb114435a29bc299b30af9345624efc1a7040d5c14eddb3645b5315.css as=style>
+<link href=/scss/main.min.be9fabc31fb114435a29bc299b30af9345624efc1a7040d5c14eddb3645b5315.css rel=stylesheet integrity>
+<script src=https://code.jquery.com/jquery-3.5.1.min.js integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin=anonymous></script>
+</head>
+<body class=td-page>
+<header>
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+<a class=navbar-brand href=/>
+<span class=navbar-logo><svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 500 500" style="enable-background:new 0 0 500 500"><g><path style="fill:#fff" d="M116.8525 421.9722c-5.7041.0-10.3442-4.3127-10.3442-9.6129V88.183c0-5.3002 4.6401-9.6117 10.3442-9.6117H320.858c3.0347.0 9.3959.5498 11.7506 2.6302l.3545.3442 58.905 63.2912c2.3101 2.491 2.9202 8.4928 2.9202 11.3184v256.2039c0 5.3002-4.6407 9.6129-10.3436 9.6129H116.8525z"/><g><g><g><path style="fill:#767676" d="M384.4445 423.2066H116.852c-6.3839.0-11.5786-4.8658-11.5786-10.8474V88.1831c0-5.9804 5.1947-10.8461 11.5786-10.8461h204.0062c.377.0 9.2786.0329 12.568 2.9389l.3947.3833 58.9508 63.337c3.2135 3.4652 3.2514 11.7924 3.2514 12.1593v256.2036C396.0231 418.3408 390.8284 423.2066 384.4445 423.2066zM116.5079 411.9189c.0848.0278.1999.0531.3441.0531h267.5925c.1442.0.2581-.0253.3441-.0531V156.1556c-.0076-.9033-.3593-3.7347-.7034-5.0037l-57.6527-61.9416c-1.4651-.3176-4.4533-.6389-5.5742-.6389H116.852c-.143.0-.2594.024-.3441.0531V411.9189zm267.4533-261.149zM327.0321 89.371v.0013V89.371z"/></g></g></g><g><g><path style="fill:#5b7fc0" d="M189.0874 210.1754l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.025 2.454-11.4897 6.4116-15.4473C177.5953 212.627 183.0601 210.1742 189.0874 210.1754zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403S197.0816 234.1722 197.0804 232.033z"/><path style="opacity:.3;fill:#fff" d="M189.0898 210.176c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 212.6276 183.0612 210.176 189.0898 210.176zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 236.239 197.0839 234.2399 197.0839 232.0372z"/><g><defs><path id="SVGID_1_" d="M194.7376 237.6875c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.999 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 234.2399 196.1861 236.239 194.7376 237.6875z"/></defs><clipPath id="SVGID_2_"><use xlink:href="#SVGID_1_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_2_);fill:#fff" d="M190.0704 225.0237c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 225.7247 191.9774 225.0237 190.0704 225.0237z"/><path style="opacity:.13;clip-path:url(#SVGID_2_);fill:#020202" d="M190.0704 225.0237c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 225.7247 191.9774 225.0237 190.0704 225.0237z"/></g><g><defs><path id="SVGID_3_" d="M189.0898 210.176c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 212.6276 183.0612 210.176 189.0898 210.176zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 236.239 197.0839 234.2399 197.0839 232.0372z"/></defs><clipPath id="SVGID_4_"><use xlink:href="#SVGID_3_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_4_);fill:#5b7fc0" d="M172.6595 215.6045c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8612 12.0547.0024 21.8636-9.797 21.8613-21.8612.0024-3.8475-1.0151-7.6326-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 209.1953 176.6171 211.647 172.6595 215.6045z"/></g></g><rect x="198.8952" y="225.1043" style="fill:#5b7fc0" width="122.6266" height="13.8671"/></g><g><path style="fill:#d95140" d="M189.0874 155.7611l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.0249 2.454-11.4897 6.4116-15.4473C177.5953 158.2128 183.0601 155.7599 189.0874 155.7611zm7.993 21.8577c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403C196.2508 181.7667 197.0816 179.758 197.0804 177.6188z"/><path style="opacity:.3;fill:#fff" d="M189.0898 155.7617c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 158.2134 183.0612 155.7617 189.0898 155.7617zm7.9941 21.8613c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 181.8248 197.0839 179.8256 197.0839 177.623z"/><g><defs><path id="SVGID_5_" d="M194.7376 183.2733c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.9989 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 179.8256 196.1861 181.8248 194.7376 183.2733z"/></defs><clipPath id="SVGID_6_"><use xlink:href="#SVGID_5_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_6_);fill:#fff" d="M190.0704 170.6095c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 171.3104 191.9774 170.6095 190.0704 170.6095z"/><path style="opacity:.13;clip-path:url(#SVGID_6_);fill:#020202" d="M190.0704 170.6095c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 171.3104 191.9774 170.6095 190.0704 170.6095z"/></g><g><defs><path id="SVGID_7_" d="M189.0898 155.7617c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 158.2134 183.0612 155.7617 189.0898 155.7617zm7.9941 21.8613c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 181.8248 197.0839 179.8256 197.0839 177.623z"/></defs><clipPath id="SVGID_8_"><use xlink:href="#SVGID_7_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_8_);fill:#d95140" d="M172.6595 161.1903c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8613 12.0547.0024 21.8636-9.797 21.8613-21.8613.0024-3.8474-1.0151-7.6326-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 154.7811 176.6171 157.2327 172.6595 161.1903z"/></g><rect x="198.8952" y="170.69" style="fill:#d95140" width="122.6266" height="13.8671"/></g><g><g><path style="fill:#56a55c" d="M189.5379 264.6147l.0012-.0012c7.7751.0012 15.0294 4.1862 18.932 10.9235 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032-5.8394.0-11.3281-2.2733-15.458-6.4032-4.13-4.13-6.4032-9.6186-6.4056-15.4628.0012-6.0249 2.454-11.4897 6.4116-15.4472C178.0458 267.0663 183.5105 264.6135 189.5379 264.6147zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6538 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403C196.7013 290.6202 197.5321 288.6115 197.5309 286.4723z"/><path style="opacity:.3;fill:#fff" d="M189.5403 264.6153c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8065-21.8612-21.8613.0-6.0285 2.4516-11.492 6.4116-15.452C178.0482 267.0669 183.5117 264.6153 189.5403 264.6153zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.6366 290.6783 197.5344 288.6792 197.5344 286.4765z"/><g><defs><path id="SVGID_9_" d="M195.1881 292.1268c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.9989 7.9942-7.9941 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.5344 288.6792 196.6366 290.6783 195.1881 292.1268z"/></defs><clipPath id="SVGID_10_"><use xlink:href="#SVGID_9_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_10_);fill:#fff" d="M190.5209 279.463c-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7446-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9941 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C194.239 280.164 192.4279 279.463 190.5209 279.463z"/><path style="opacity:.13;clip-path:url(#SVGID_10_);fill:#020202" d="M190.5209 279.463c-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7446-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9941 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C194.239 280.164 192.4279 279.463 190.5209 279.463z"/></g><g><defs><path id="SVGID_11_" d="M189.5403 264.6153c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8065-21.8612-21.8613.0-6.0285 2.4516-11.492 6.4116-15.452C178.0482 267.0669 183.5117 264.6153 189.5403 264.6153zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.6366 290.6783 197.5344 288.6792 197.5344 286.4765z"/></defs><clipPath id="SVGID_12_"><use xlink:href="#SVGID_11_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_12_);fill:#56a55c" d="M173.11 270.0439c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8613 12.0547.0024 21.8636-9.797 21.8613-21.8613.0024-3.8474-1.0151-7.6326-2.9353-10.9462-3.8977-6.7325-11.1497-10.9151-18.926-10.9151C182.5311 263.6346 177.0676 266.0863 173.11 270.0439z"/></g></g><rect x="199.3456" y="279.5436" style="fill:#56a55c" width="122.6266" height="13.8671"/></g><g><g><path style="fill:#f1bc42" d="M189.0874 318.7208l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3305-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.025 2.454-11.4897 6.4116-15.4472C177.5953 321.1724 183.0601 318.7196 189.0874 318.7208zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403S197.0816 342.7176 197.0804 340.5784z"/><path style="opacity:.3;fill:#fff" d="M189.0898 318.7214c7.7763.0 15.0283 4.1826 18.926 10.915 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8612-12.0547.0024-21.8636-9.8065-21.8612-21.8612.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 321.173 183.0612 318.7214 189.0898 318.7214zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 344.7844 197.0839 342.7853 197.0839 340.5826z"/><g><defs><path id="SVGID_13_" d="M194.7376 346.2329c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.999 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 342.7853 196.1861 344.7844 194.7376 346.2329z"/></defs><clipPath id="SVGID_14_"><use xlink:href="#SVGID_13_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_14_);fill:#fff" d="M190.0704 333.5691c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0834 6.1218 2.8788C193.7885 334.2701 191.9774 333.5691 190.0704 333.5691z"/><path style="opacity:.13;clip-path:url(#SVGID_14_);fill:#020202" d="M190.0704 333.5691c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0834 6.1218 2.8788C193.7885 334.2701 191.9774 333.5691 190.0704 333.5691z"/></g><g><defs><path id="SVGID_15_" d="M189.0898 318.7214c7.7763.0 15.0283 4.1826 18.926 10.915 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8612-12.0547.0024-21.8636-9.8065-21.8612-21.8612.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 321.173 183.0612 318.7214 189.0898 318.7214zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 344.7844 197.0839 342.7853 197.0839 340.5826z"/></defs><clipPath id="SVGID_16_"><use xlink:href="#SVGID_15_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_16_);fill:#f1bc42" d="M172.6595 324.15c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8612 12.0547.0024 21.8636-9.797 21.8613-21.8612.0024-3.8474-1.0151-7.6327-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 317.7407 176.6171 320.1924 172.6595 324.15z"/></g></g><rect x="198.8952" y="333.6497" style="fill:#f1bc42" width="122.6266" height="13.8671"/></g></g></svg></span><span class=font-weight-bold>Taction's Blog</span>
+</a>
+<div class="td-navbar-nav-scroll ml-md-auto" id=main_navbar>
+<ul class="navbar-nav mt-2 mt-lg-0">
+</ul>
+</div>
+<div class="navbar-nav d-none d-lg-block">
+</div>
+</nav>
+</header>
+<div class="container-fluid td-outer">
+<div class=td-main>
+<div class="row flex-xl-nowrap">
+<div class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+<div id=td-sidebar-menu class=td-sidebar__inner>
+<nav class="collapse td-sidebar-nav pt-2 pl-4" id=td-section-nav>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section"></a>
+</li>
+<ul>
+<li class="collapse show">
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">serverless</a>
+</li>
+<ul>
+<li class="collapse show" id=serverless>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/platform/ class="align-left pl-0 pr-2 active td-sidebar-link td-sidebar-link__section">platform</a>
+</li>
+<ul>
+<li class="collapse show" id=serverlessplatform>
+<a class="td-sidebar-link td-sidebar-link__page active" id=m-serverlessplatformknative-use href=/serverless/platform/knative-use/>Knative Use</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/webassembly/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">WebAssembly</a>
+</li>
+<ul>
+<li class="collapse show" id=serverlesswebassembly>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm2 href=/serverless/webassembly/wasm2/>相关项目分析</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblymanage-wasm-using-docker href=/serverless/webassembly/manage-wasm-using-docker/>docker+wasm</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm1 href=/serverless/webassembly/wasm1/>wasm概述</a>
+</li>
+</ul>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+</ul>
+</ul>
+</nav>
+</div>
+</div>
+<div class="d-none d-xl-block col-xl-2 td-toc d-print-none">
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+</div>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#启动minikube>启动minikube</a></li>
+<li><a href=#安装knative>安装knative</a></li>
+<li><a href=#部署服务>部署服务</a></li>
+<li><a href=#后记>后记</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+<main class="col-12 col-md-9 col-xl-8 pl-md-5" role=main>
+<nav aria-label=breadcrumb class="d-none d-md-block d-print-none">
+<ol class="breadcrumb spb-1">
+<li class=breadcrumb-item>
+<a href=https://taction.top/serverless/>serverless</a>
+</li>
+<li class=breadcrumb-item>
+<a href=https://taction.top/serverless/platform/>platform</a>
+</li>
+<li class="breadcrumb-item active" aria-current=page>
+<a href=https://taction.top/serverless/platform/knative-use/>Knative Use</a>
+</li>
+</ol>
+</nav>
+<div class=td-content>
+<h1>Knative Use</h1>
+<p>本文档主要介绍跟随<a href=https://knative.dev/docs/getting-started/>官网入门教程</a>和<a href=https://github.com/csantanapr/knative-minikube>minikube</a>案例运行knative的hello world。中间部分命令根据国内众所周知的网络特点做了一下适配。本篇基本未涉及原理性介绍。</p>
+<p>首先确认安装<a href=https://kind.sigs.k8s.io/docs/user/quick-start>kind</a>或者<a href=https://minikube.sigs.k8s.io/docs/start/>minikube</a>、<a href=https://kubernetes.io/docs/tasks/tools/>kubectl</a>、<a href=https://knative.dev/docs/getting-started/#install-the-knative-cli>kn</a>这些必要的软件。如果你跟随本教程，那么你只需要确认安装minikube和kubectl即可。</p>
+<h3 id=启动minikube>启动minikube</h3>
+<p>当minikube镜像拉取过慢的时候可以参考<a href=https://www.cxyzjd.com/article/TinyJian/109699420>配置代理</a>。或者通过以下命令来运行minikube<code>minikube start --image-mirror-country='cn' --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers'</code>但是这样是不够的。还是无法解决minikube拉取knative镜像问题。你会发现pod的状态被卡在<code>ImagePullBackOff</code>状态中。</p>
+<p>作为一个成熟的程序员，命令行代理你肯定已经非常熟悉了。这里主要说明一下启动minikube设置的docker-env是配置在拉取镜像中通过此代理拉取。这里要注意第一要把本地代理client监听0.0.0.0，如果为了安全你可以通过网络安全组来限制只能自己的ip访问这个端口。第二将以下命令行中{your ip}替换成你主机的实际公网ip。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 命令行代理</span>
+export http_proxy<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;http://127.0.0.1:1080&#34;</span>
+export https_proxy<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;http://127.0.0.1:1080&#34;</span>
+<span style=color:#75715e># 启动minikube</span>
+minikube start <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>--image-mirror-country cn     <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>--image-repository<span style=color:#f92672>=</span>registry.cn-hangzhou.aliyuncs.com/google_containers     <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>--docker-env http_proxy<span style=color:#f92672>=</span>http://<span style=color:#f92672>{</span>your ip<span style=color:#f92672>}</span>:1080 <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>--docker-env https_proxy<span style=color:#f92672>=</span>http://<span style=color:#f92672>{</span>your ip<span style=color:#f92672>}</span>:1080 <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>--docker-env no_proxy<span style=color:#f92672>=</span>localhost,127.0.0.1,10.96.0.0/12,192.168.99.0/24,192.168.39.0/24
+</code></pre></div><h3 id=安装knative>安装knative</h3>
+<p>选择要安装的版本</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>export KNATIVE_VERSION<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;0.26.0&#34;</span>
+</code></pre></div><p>定义knative自己的各项CustomResourceDefinition（CRD）来扩展k8s API。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE_VERSION/serving-crds.yaml
+kubectl wait --for<span style=color:#f92672>=</span>condition<span style=color:#f92672>=</span>Established --all crd
+</code></pre></div><p>创建knative-serving namespace并且安装各项knative组件。在这个yaml里定义了namespace、k8s权限及绑定、一些crd资源以及knative组件deployment。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE_VERSION/serving-core.yaml
+
+kubectl wait pod --timeout<span style=color:#f92672>=</span>-1s --for<span style=color:#f92672>=</span>condition<span style=color:#f92672>=</span>Ready -l <span style=color:#e6db74>&#39;!job-name&#39;</span> -n knative-serving &gt; /dev/null
+</code></pre></div><p>选择你要安装的Net Kourier版本</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>export KNATIVE_NET_KOURIER_VERSION<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;0.26.0&#34;</span>
+</code></pre></div><p>在<code>kourier-system</code> namespace下安装kourier</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>kubectl apply -f https://github.com/knative/net-kourier/releases/download/v$KNATIVE_NET_KOURIER_VERSION/kourier.yaml
+kubectl wait pod --timeout<span style=color:#f92672>=</span>-1s --for<span style=color:#f92672>=</span>condition<span style=color:#f92672>=</span>Ready -l <span style=color:#e6db74>&#39;!job-name&#39;</span> -n kourier-system
+kubectl wait pod --timeout<span style=color:#f92672>=</span>-1s --for<span style=color:#f92672>=</span>condition<span style=color:#f92672>=</span>Ready -l <span style=color:#e6db74>&#39;!job-name&#39;</span> -n knative-serving
+</code></pre></div><p>你也可以通过以下命令来查看创建了哪些pod以及它们的状态<code>watch kubectl get pods -n knative-serving</code>。</p>
+<pre tabindex=0><code>$ kubectl get pods -n knative-serving
+NAME                                     READY   STATUS    RESTARTS   AGE
+activator-7b9b84596d-245rh               1/1     Running   0          23m
+autoscaler-65cbff8f7d-bg4w7              1/1     Running   0          23m
+controller-7d8f4849d8-dnmsq              1/1     Running   0          23m
+domain-mapping-676785d476-jx6dd          1/1     Running   0          23m
+domainmapping-webhook-7949444d7d-z8plp   1/1     Running   0          23m
+webhook-58975ff8d-kqtrx                  1/1     Running   0          23m
+</code></pre><p>当所有的都处于running状态的时候，即启动完成，否则你可以根据对应的status判断是否出现了问题。</p>
+<p>新开一个命令行终端运行以下命令。您需要这样做才能使用<code>EXTERNAL-IP</code>for kourier Load Balancer 服务。</p>
+<pre tabindex=0><code>minikube tunnel
+</code></pre><p>将环境变量设置为<code>EXTERNAL_IP</code>工作节点的外部 IP 地址，您可能需要多次运行此命令，直到服务就绪。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>EXTERNAL_IP<span style=color:#f92672>=</span><span style=color:#66d9ef>$(</span>kubectl -n kourier-system get service kourier -o jsonpath<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;{.status.loadBalancer.ingress[0].ip}&#39;</span><span style=color:#66d9ef>)</span>
+echo EXTERNAL_IP<span style=color:#f92672>=</span>$EXTERNAL_IP
+</code></pre></div><p>使用以下命令将环境变量设置<code>KNATIVE_DOMAIN</code>为 DNS 域<code>nip.io</code>，并检查dns可以被正常解析。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>KNATIVE_DOMAIN<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$EXTERNAL_IP<span style=color:#e6db74>.nip.io&#34;</span>
+echo KNATIVE_DOMAIN<span style=color:#f92672>=</span>$KNATIVE_DOMAIN
+dig $KNATIVE_DOMAIN
+</code></pre></div><p>为 Knative 服务配置 DNS</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>kubectl patch configmap -n knative-serving config-domain -p <span style=color:#e6db74>&#34;{\&#34;data\&#34;: {\&#34;</span>$KNATIVE_DOMAIN<span style=color:#e6db74>\&#34;: \&#34;\&#34;}}&#34;</span>
+</code></pre></div><p>配置knative使用kourier</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>kubectl patch configmap/config-network <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>  --namespace knative-serving <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>  --type merge <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>  --patch <span style=color:#e6db74>&#39;{&#34;data&#34;:{&#34;ingress.class&#34;:&#34;kourier.ingress.networking.knative.dev&#34;}}&#39;</span>
+</code></pre></div><p>接下来你就可以进行服务部署了。</p>
+<h3 id=部署服务>部署服务</h3>
+<pre tabindex=0><code>cat &lt;&lt;EOF | kubectl apply -f -
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hello
+spec:
+  template:
+    spec:
+      containers:
+        - image: gcr.oneitfarm.com/knative-samples/helloworld-go
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TARGET
+              value: &quot;Knative&quot;
+EOF
+</code></pre><p>等待服务部署完成</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>kubectl wait ksvc hello --all --timeout<span style=color:#f92672>=</span>-1s --for<span style=color:#f92672>=</span>condition<span style=color:#f92672>=</span>Ready
+</code></pre></div><p>获取服务的访问url</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>SERVICE_URL<span style=color:#f92672>=</span><span style=color:#66d9ef>$(</span>kubectl get ksvc hello -o jsonpath<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;{.status.url}&#39;</span><span style=color:#66d9ef>)</span>
+echo $SERVICE_URL
+</code></pre></div><p>访问服务,这个时候控制台应该会输出<code>Hello Knative</code></p>
+<pre tabindex=0><code>$ curl $SERVICE_URL
+</code></pre><p>我定义了一下输出内容，这样可以看到运行的时候的请求延迟。分别对服务进行冷启动请求和热请求测试。</p>
+<pre tabindex=0><code>curl -w &quot;@curl-format.txt&quot; $SERVICE_URL
+</code></pre><p>运行结果</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 冷启动请求</span>
+curl -w <span style=color:#e6db74>&#34;@curl-format.txt&#34;</span> $SERVICE_URL
+Hello Knative!
+time_namelookup:  0.001831
+       time_connect:  0.002052
+    time_appconnect:  0.000000
+      time_redirect:  0.000000
+   time_pretransfer:  0.002110
+ time_starttransfer:  1.966370
+                    ----------
+         time_total:  1.966427
+         
+<span style=color:#75715e># 热启动请求</span>
+curl -w <span style=color:#e6db74>&#34;@curl-format.txt&#34;</span> $SERVICE_URL
+Hello Knative!
+time_namelookup:  0.194799
+       time_connect:  0.195032
+    time_appconnect:  0.000000
+      time_redirect:  0.000000
+   time_pretransfer:  0.195137
+ time_starttransfer:  0.196945
+                    ----------
+         time_total:  0.196989
+</code></pre></div><p>在这个过程中我们可以另外开一个命令行，通过watch pods来查看当有请求时容器被启动，当一段时间内没有请求后，容器数量被缩放到0这一现象。</p>
+<p><img src=/images/knative-scale.png alt=image-20211101204945605></p>
+<h4 id=部署新版本及分流>部署新版本及分流</h4>
+<p>默认情况下knative会将所有流量都导入新版本，你可以增加<code>traffic</code>字段来指定不同版本的流量比例。</p>
+<pre tabindex=0><code>cat &lt;&lt;EOF | kubectl apply -f -
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hello
+spec:
+  template:
+    metadata:
+      name: hello-knative-v2
+    spec:
+      containers:
+        - image: gcr.oneitfarm.com/knative-samples/helloworld-go
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TARGET
+              value: &quot;Knative V2&quot;
+  traffic:
+  - latestRevision: true
+    percent: 50
+  - revisionName: hello-00001
+    percent: 50
+EOF
+</code></pre><p>配置成功控制台会输出</p>
+<pre tabindex=0><code>service.serving.knative.dev/hello configured
+</code></pre><p>这个时候我们再请求就会发现流量被路由到了不同的版本，你可以通过以下命令来查看不同的版本。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>kn revisions list
+<span style=color:#75715e># or</span>
+kubectl get revisions
+</code></pre></div><h4 id=服务缩放定义>服务缩放定义</h4>
+<p>可以通过annotations中的定义来指定缩放策略。比如以下策略可以定义从1-5的pod缩放。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>cat <span style=color:#e6db74>&lt;&lt;EOF | kubectl apply -f -
+</span><span style=color:#e6db74>apiVersion: serving.knative.dev/v1
+</span><span style=color:#e6db74>kind: Service
+</span><span style=color:#e6db74>metadata:
+</span><span style=color:#e6db74>  name: hello
+</span><span style=color:#e6db74>spec:
+</span><span style=color:#e6db74>  template:
+</span><span style=color:#e6db74>    metadata:
+</span><span style=color:#e6db74>      name: hello-knative-v3
+</span><span style=color:#e6db74>      annotations:
+</span><span style=color:#e6db74>        # the minimum number of pods to scale down to
+</span><span style=color:#e6db74>        autoscaling.knative.dev/minScale: &#34;1&#34;
+</span><span style=color:#e6db74>        # the maximum number of pods to scale up to
+</span><span style=color:#e6db74>        autoscaling.knative.dev/maxScale: &#34;5&#34;
+</span><span style=color:#e6db74>        # Target in-flight-requests per pod.
+</span><span style=color:#e6db74>        autoscaling.knative.dev/target: &#34;1&#34;
+</span><span style=color:#e6db74>    spec:
+</span><span style=color:#e6db74>      containers:
+</span><span style=color:#e6db74>        - image: gcr.oneitfarm.com/knative-samples/helloworld-go
+</span><span style=color:#e6db74>          ports:
+</span><span style=color:#e6db74>            - containerPort: 8080
+</span><span style=color:#e6db74>          env:
+</span><span style=color:#e6db74>            - name: TARGET
+</span><span style=color:#e6db74>              value: &#34;Knative V3&#34;
+</span><span style=color:#e6db74>EOF</span>
+</code></pre></div><p>这时用hey压测就会得到以下结果</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ hey -z 30s -c <span style=color:#ae81ff>50</span> http://hello.default.10.104.46.103.nip.io
+
+Summary:
+  Total:	30.0150 secs
+  Slowest:	2.1715 secs
+  Fastest:	0.0024 secs
+  Average:	0.0353 secs
+  Requests/sec:	1412.4594
+
+  Total data:	<span style=color:#ae81ff>763110</span> bytes
+  Size/request:	<span style=color:#ae81ff>18</span> bytes
+
+Response time histogram:
+  0.002 <span style=color:#f92672>[</span>1<span style=color:#f92672>]</span>	|
+  0.219 <span style=color:#f92672>[</span>42314<span style=color:#f92672>]</span>	|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.436 <span style=color:#f92672>[</span>30<span style=color:#f92672>]</span>	|
+  0.653 <span style=color:#f92672>[</span>0<span style=color:#f92672>]</span>	|
+  0.870 <span style=color:#f92672>[</span>0<span style=color:#f92672>]</span>	|
+  1.087 <span style=color:#f92672>[</span>0<span style=color:#f92672>]</span>	|
+  1.304 <span style=color:#f92672>[</span>0<span style=color:#f92672>]</span>	|
+  1.521 <span style=color:#f92672>[</span>0<span style=color:#f92672>]</span>	|
+  1.738 <span style=color:#f92672>[</span>0<span style=color:#f92672>]</span>	|
+  1.955 <span style=color:#f92672>[</span>0<span style=color:#f92672>]</span>	|
+  2.171 <span style=color:#f92672>[</span>50<span style=color:#f92672>]</span>	|
+
+
+Latency distribution:
+  10% in 0.0151 secs
+  25% in 0.0204 secs
+  50% in 0.0285 secs
+  75% in 0.0399 secs
+  90% in 0.0546 secs
+  95% in 0.0671 secs
+  99% in 0.1100 secs
+
+Details <span style=color:#f92672>(</span>average, fastest, slowest<span style=color:#f92672>)</span>:
+  DNS+dialup:	0.0024 secs, 0.0024 secs, 2.1715 secs
+  DNS-lookup:	0.0024 secs, 0.0000 secs, 2.0054 secs
+  req write:	0.0000 secs, 0.0000 secs, 0.0108 secs
+  resp wait:	0.0329 secs, 0.0023 secs, 0.2963 secs
+  resp read:	0.0001 secs, 0.0000 secs, 0.0073 secs
+</code></pre></div><p>这个时候我们查看pod状态，就可以看到其中有一个预启动的比其他存活时间更久</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ k get pods
+NAME                                          READY   STATUS    RESTARTS   AGE
+hello-knative-v3-deployment-fdf969d79-b8zts   2/2     Running   <span style=color:#ae81ff>0</span>          81s
+hello-knative-v3-deployment-fdf969d79-gr9t2   2/2     Running   <span style=color:#ae81ff>0</span>          3m17s
+hello-knative-v3-deployment-fdf969d79-qhd2s   2/2     Running   <span style=color:#ae81ff>0</span>          81s
+hello-knative-v3-deployment-fdf969d79-sfb8g   2/2     Running   <span style=color:#ae81ff>0</span>          81s
+hello-knative-v3-deployment-fdf969d79-sz4hl   2/2     Running   <span style=color:#ae81ff>0</span>          81s
+</code></pre></div><p>注意：如果你设置<code>minScale > 0</code>将导致每个<code>Revision</code>Pod 始终至少运行指定数量的 Pod，尽管它们没有获得任何流量。在这种情况下，不要忘记清理旧版本。</p>
+<h3 id=后记>后记</h3>
+<p>通过本篇文章，你可以在自己的minikube中运行knative并且观察其对于服务的实际缩放的现象。并且能够看到服务的冷热启动的请求延迟。</p>
+<p>接下来计划陆续会进行远程调试k8s中的knative组件、对knative组件分析、knative与kong结合案例的分析、knative关键源码分析。</p>
+<div class="text-muted mt-5 pt-3 border-top">
+</div>
+</div>
+</main>
+</div>
+</div>
+<footer class="bg-dark py-5 row d-print-none">
+<div class="container-fluid mx-sm-5">
+<div class=row>
+<div class="col-6 col-sm-4 text-xs-center order-sm-2">
+</div>
+<div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+</div>
+<div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+</div>
+</div>
+</div>
+</footer>
+</div>
+<script src=https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js integrity=sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN crossorigin=anonymous></script>
+<script src=https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js integrity=sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF crossorigin=anonymous></script>
+<script src=/js/main.min.f8dc12214b1b557b8ee4603ff35df42ebeef990cf05109190b758b04eac03307.js integrity="sha256-+NwSIUsbVXuO5GA/8130Lr7vmQzwUQkZC3WLBOrAMwc=" crossorigin=anonymous></script>
+</body>
+</html>

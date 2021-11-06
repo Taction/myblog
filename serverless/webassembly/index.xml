@@ -1,4 +1,4 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>My New Hugo Site – WebAssembly</title><link>http://example.org/serverless/webassembly/</link><description>Recent content in WebAssembly on My New Hugo Site</description><generator>Hugo -- gohugo.io</generator><language>zh</language><lastBuildDate>Tue, 26 Oct 2021 16:19:30 +0800</lastBuildDate><atom:link href="http://example.org/serverless/webassembly/index.xml" rel="self" type="application/rss+xml"/><item><title>Serverless: 基于WebAsssembly的Serverless探索2：相关项目分析</title><link>http://example.org/serverless/webassembly/wasm2/</link><pubDate>Sat, 16 Oct 2021 12:59:01 +0800</pubDate><guid>http://example.org/serverless/webassembly/wasm2/</guid><description>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Taction's Blog – WebAssembly</title><link>https://taction.top/serverless/webassembly/</link><description>Recent content in WebAssembly on Taction's Blog</description><generator>Hugo -- gohugo.io</generator><language>zh</language><lastBuildDate>Tue, 26 Oct 2021 16:19:30 +0800</lastBuildDate><atom:link href="https://taction.top/serverless/webassembly/index.xml" rel="self" type="application/rss+xml"/><item><title>Serverless: 基于WebAsssembly的Serverless探索2：相关项目分析</title><link>https://taction.top/serverless/webassembly/wasm2/</link><pubDate>Sat, 16 Oct 2021 12:59:01 +0800</pubDate><guid>https://taction.top/serverless/webassembly/wasm2/</guid><description>
 &lt;h3 id="背景">背景&lt;/h3>
 &lt;h4 id="云原生正在成为新的基础设施">云原生正在成为新的基础设施&lt;/h4>
 &lt;p>云原生技术有利于各组织在公有云、私有云和混合云等新型动态环境中，构建和运行可弹性扩展的应用。云原生向下封装资源，将复杂性下沉到基础设施层，加速了应用与基础设施资源之间的解耦，向上支撑应用，让开发者更关注业务价值，解放了开发者的生产力。业务与企业运维能够依托于云原生所提供的基础设施，实现智能升级价值，充分释放云计算红利，云原生技术正在成为全新的生产力工具。&lt;/p>
@@ -7,9 +7,9 @@
 &lt;p>程序员的工作一定是越来越简化的，对于业务开发人员来说，可以专注于业务代码开发，摆脱诸如服务器置备和管理应用程序等复杂的工作。&lt;/p>
 &lt;h4 id="为什么选择webasssembly">为什么选择WebAsssembly&lt;/h4>
 &lt;p>&lt;a href="https://webassembly.github.io/spec/core/intro/introduction.html">WebAsssembly&lt;/a>是一种安全、可移植的低层次二进制代码。它有一种紧凑的二进制格式，能够以接近原生性能的速度运行。作为应用层级的后端语言，它具有以下优点：&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/image-20211016112123586.png" alt="image-20211016112123586">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/image-20211016112123586.png" alt="image-20211016112123586">&lt;/p>
 &lt;p>WebAssembly对比docker冷启动延迟可以降低90%以上，对比于js通常具有两倍的运行速度优势。其冷启动方面的延迟是它非常显著的一个优势。与faas和serverless的理念非常贴合。从下图WebAssembly与docker的一个对比上，可以看到它在冷启动延迟和速度方面均具有独特的优势。&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/wasmvsdocker.png" alt="image-wasmvsdocker">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/wasmvsdocker.png" alt="image-wasmvsdocker">&lt;/p>
 &lt;h4 id="istioenvoy与webassembly结合">istio（envoy）与WebAssembly结合&lt;/h4>
 &lt;h4 id="dapr与webasssembly结合">dapr与WebAsssembly结合&lt;/h4>
 &lt;p>最初了解WebAsssembly还是通过易立的这篇&lt;a href="https://developer.aliyun.com/article/783864">WebAssembly + Dapr = 下一代云原生运行时?&lt;/a>&lt;/p>
@@ -43,7 +43,7 @@ make build-web
 make run-web
 &lt;/code>&lt;/pre>&lt;h4 id="效果">效果&lt;/h4>
 &lt;p>运行时会启动3个daprsidecar和3个项目的进程分别为web、go和rust项目。前端项目运行在8080端口通过dapr访问go项目后端api，对图片进行识别。&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/image-20211012152207326.png" alt="image-20211012152207326">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/image-20211012152207326.png" alt="image-20211012152207326">&lt;/p>
 &lt;h4 id="压测">压测&lt;/h4>
 &lt;p>主要目的是想通过压测查看是否存在内存泄露现象，所以对于压测的次数和时间没有精确要求控制。而且请求会附带图片参数，通过ab和wrk构造压测请求较为麻烦。所以偷懒一下，直接在web-port子项中改造下发送请求的地方，每次点击额外发送100条请求。通过top来查看内存占用情况。由于可能会重启后端服务其pid会变，linux下可以通过运行&lt;code>top -p $(ps -ef | grep ./image-api-go | grep -v grep | grep -v dapr | awk '{print $2}')&lt;/code>&lt;/p>
 &lt;p>发送前记录&lt;/p>
@@ -67,11 +67,11 @@ PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND
 &lt;h3 id="写在最后">写在最后&lt;/h3>
 &lt;p>wasm已经展现出来了其强大的生命力。即使是处于一个早期阶段，对后端和多语言的各项支持还不是很完善，但是因为其美好的前景，在云原生领域被广泛的接纳。已经有越来越多的webassembly相关项目进入到了cncf中。&lt;/p>
 &lt;p>从上面的案例可以看出，webassembly作为后端程序被使用时，整体程序架构类似于下图：&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/wasm_code_structure.png" alt="image-20211015145237598">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/wasm_code_structure.png" alt="image-20211015145237598">&lt;/p>
 &lt;p>其核心是ABI interface的制定，在不同的细分领域可能会有不同的ABI标准。比如在语言层面交互时可能会是WASI，在代理中间件场景就是proxy-wasm，与dapr运行时交互的业务wasm代码可能会在未来发展出dapr-wasm abi。&lt;/p>
 &lt;p>在制定完成ABI之后用于编译成wasm的语言，比如c、rust、go等就需要按照abi标准去实现和调用外部函数。这部分胶水代码对于同一个语言来说都是一模一样的，而且在大部分场景下完整的实现完成都会有一定的复杂性，所以自然而然的就会产生不同语言自己的clientSDK。&lt;/p>
 &lt;p>对于wasm的host程序来说也是一样的，需要实现ABI中定义的导入函数，并将对wasm内的函数调用封装成自身语言的函数，对外提供。这样程序只需要集成ABI host Impl代码，即可像调用本地函数一样调用wasm内实现的函数。&lt;/p>
-&lt;p>因此我觉得在未来，wasm在各个领域的争夺必有一项是关于自身领域ABI标准规范的话语权的争夺。当然也有可能WASI博取百家之长成为一套完备的ABI规范。&lt;/p></description></item><item><title>Serverless: 使用Docker工具在WasmEdge中管理WebAssembly应用程序</title><link>http://example.org/serverless/webassembly/manage-wasm-using-docker/</link><pubDate>Tue, 26 Oct 2021 16:19:30 +0800</pubDate><guid>http://example.org/serverless/webassembly/manage-wasm-using-docker/</guid><description>
+&lt;p>因此我觉得在未来，wasm在各个领域的争夺必有一项是关于自身领域ABI标准规范的话语权的争夺。当然也有可能WASI博取百家之长成为一套完备的ABI规范。&lt;/p></description></item><item><title>Serverless: 使用Docker工具在WasmEdge中管理WebAssembly应用程序</title><link>https://taction.top/serverless/webassembly/manage-wasm-using-docker/</link><pubDate>Tue, 26 Oct 2021 16:19:30 +0800</pubDate><guid>https://taction.top/serverless/webassembly/manage-wasm-using-docker/</guid><description>
 &lt;p>开发人员可以利用DockerHub和CRI-O等Docker工具部署、管理和运行轻量级WebAssembly应用，这些应用使用&lt;a href="https://github.com/WasmEdge/WasmEdge">WasmEdge&lt;/a>运行时。虽然 WebAssembly 应用可以由多种编程语言编写，但 Rust 是迄今为止最安全、最快的 选择。&lt;/p>
 &lt;blockquote>
 &lt;p>WasmEdge 是&lt;a href="https://www.cncf.io/sandbox-projects/">由 CNCF&lt;/a>（云原生计算基金会）托管的高级 WebAssembly 运行时，是边缘计算应用程序的执行沙箱。&lt;/p>
@@ -370,7 +370,7 @@ Test 6: Read the content from the previous file
 File content is This is in a file
 Test 7: Delete the previous file
 &lt;/code>&lt;/pre>&lt;/div>&lt;p>实际运行效果:&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/runwasmedgewhitdocker.png" alt="image-20211028152632029">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/runwasmedgewhitdocker.png" alt="image-20211028152632029">&lt;/p>
 &lt;h4 id="展望下一步">展望下一步&lt;/h4>
 &lt;p>在本文中，我们看到了如何使用类似 Docker 的 CRI-O 工具启动、运行和管理 WasmEdge 应用程序。&lt;/p>
 &lt;p>我们的下一步是使用 Kubernetes 来管理 WasmEdge 容器。为此，我们需要在 Kubernetes 中安装一个 runner 二进制文件，以便它可以同时支持常规 Docker 镜像和 wasm 字节码镜像。&lt;/p>
@@ -380,7 +380,7 @@ Test 7: Delete the previous file
 &lt;p>创建container的时候遇到权限问题，大致猜测可能是wasm文件的权限问题，因此在docker build image之前，&lt;code>chmod 777 wasi_example_main.wasm&lt;/code>然后再执行docker build，重新推到仓库，拉取到本地。然后再执行创建container即可。以下是执行命令的报错：&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">$ crictl create $POD_ID container_wasi.json sandbox_config.json
 FATA&lt;span style="color:#f92672">[&lt;/span>0000&lt;span style="color:#f92672">]&lt;/span> creating container: rpc error: code &lt;span style="color:#f92672">=&lt;/span> Unknown desc &lt;span style="color:#f92672">=&lt;/span> container create failed: open executable: Permission denied
-&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;a href="https://www.secondstate.io/articles/manage-webassembly-apps-in-wasmedge-using-docker-tools/">英文原文地址&lt;/a>&lt;/p></description></item><item><title>Serverless: 基于WebAsssembly的Serverless探索1:wasm概述</title><link>http://example.org/serverless/webassembly/wasm1/</link><pubDate>Sun, 17 Oct 2021 16:16:20 +0800</pubDate><guid>http://example.org/serverless/webassembly/wasm1/</guid><description>
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;a href="https://www.secondstate.io/articles/manage-webassembly-apps-in-wasmedge-using-docker-tools/">英文原文地址&lt;/a>&lt;/p></description></item><item><title>Serverless: 基于WebAsssembly的Serverless探索1:wasm概述</title><link>https://taction.top/serverless/webassembly/wasm1/</link><pubDate>Sun, 17 Oct 2021 16:16:20 +0800</pubDate><guid>https://taction.top/serverless/webassembly/wasm1/</guid><description>
 &lt;h3 id="一介绍">一、介绍&lt;/h3>
 &lt;h4 id="11-什么是-webassembly">1.1 什么是 WebAssembly&lt;/h4>
 &lt;blockquote>
@@ -395,13 +395,13 @@ FATA&lt;span style="color:#f92672">[&lt;/span>0000&lt;span style="color:#f92672"
 &lt;p>WebAssembly对系统的函数调用并不局限于wasi，而是取决于运行wasm的运行时宿主向WebAssembly导入了什么函数。一个比较典型的例子就是enovy和mosn目前在用的一套代理协议标准：&lt;code>proxy_abi_version_0_2_0&lt;/code>，运行时在启动wasm程序的时候，将此类函数注入，wasm中就可以直接使用这些函数了。&lt;/p>
 &lt;p>当然我们也可以任意的自定义webassembly可以从宿主系统调用的函数，你将在后面模型试验的例子里看到两个典型的例子。为WebAssembly程序提供了函数计算和网络访问两个函数。这两个函数不在任何的interface标准中，完全是我们自定义的函数。&lt;/p>
 &lt;p>下图展示了部分&lt;code>proxy_abi_version_0_2_0&lt;/code>中定义的函数，是运行时将这些函数注册给wasm的代码。&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/registerfunctions.png" alt="image-20210708135302772">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/registerfunctions.png" alt="image-20210708135302772">&lt;/p>
 &lt;h4 id="13-导出函数">1.3 导出函数&lt;/h4>
 &lt;blockquote>
 &lt;p>利用这个特点，可以将wasm作为插件机制来使用。&lt;/p>
 &lt;/blockquote>
 &lt;p>除了WebAssembly可以调用运行时宿主提供的“系统调用”外，WebAssembly可以导出实现的函数，宿主机可以调用此函数，这类函数被称为导出函数。&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/functionoverview.png" alt="image-20210708142246927">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/functionoverview.png" alt="image-20210708142246927">&lt;/p>
 &lt;h4 id="wasm的安全">wasm的安全&lt;/h4>
 &lt;p>Wasm 使用故障隔离技术来沙箱执行模块。与宿主环境的互动只能通过导入的函数实现。这种机制代表了一个“安全的外部函数接口”，因为它可以与外部环境通信，但不能脱离沙箱。这是 Wasm 的一个重要安全特性。从主机的角度来看，没有导入的模块没有副作用。甚至打印 Hello World！都需要导入打印功能。同样，写入文件、网络套接字或读取时钟都需要导入。&lt;/p>
 &lt;h5 id="内存安全">内存安全&lt;/h5>
@@ -409,8 +409,8 @@ FATA&lt;span style="color:#f92672">[&lt;/span>0000&lt;span style="color:#f92672"
 &lt;h4 id="14-代码案例">1.4 代码案例&lt;/h4>
 &lt;p>接下来以一个简单的案例了解下，其中wasm程序导出一个乘法函数。wasm运行时提供一个加法函数供wasm调用。其中wasm提供的函数是可以任意定义实现的，这一点在后面模型试验的案例中可以看到。&lt;/p>
 &lt;p>其结构及接口定义如下图所示：&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/example.png" alt="image-20210708143343468">&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/structure.png" alt="image-20210708164115373">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/example.png" alt="image-20210708143343468">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/structure.png" alt="image-20210708164115373">&lt;/p>
 &lt;h5 id="141-wasm代码">1.4.1 wasm代码&lt;/h5>
 &lt;p>wasm代码中可以看到对于加法&lt;strong>add&lt;/strong>函数，只定义了函数签名，没有定义实际的逻辑，表明这个函数是一个导入的由运行时提供的函数。同时提供了&lt;strong>multiply&lt;/strong>函数，并标注这是一个导出函数，编译器会自动帮我们进行导出工作。具体的代码如下：&lt;/p>
 &lt;pre tabindex="0">&lt;code>// This calls a JS function from Go.
@@ -462,7 +462,7 @@ start()
 }
 &lt;/code>&lt;/pre>&lt;h5 id="143-运行结果">1.4.3 运行结果&lt;/h5>
 &lt;p>可以通过控制台打印看到，无论是wasm调用运行时提供的加法函数，还是运行时调用wasm中定义的乘法函数都可以正常运行&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/result.png" alt="image-20210708144330696">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/result.png" alt="image-20210708144330696">&lt;/p>
 &lt;h4 id="15-应用场景及发展方向">1.5 应用场景及发展方向&lt;/h4>
 &lt;ol>
 &lt;li>对于WebAssembly的后续发展思路分为两个大方向，
@@ -478,7 +478,7 @@ start()
 &lt;h3 id="二模型试验">二、模型试验&lt;/h3>
 &lt;p>对于数字加减的模型试验我们在介绍原理的时候已经进行过介绍了，这表明对于纯逻辑计算，无论是wasm调用运行时还是运行时调用wasm函数都是没有问题的。&lt;/p>
 &lt;p>接下来进行一个稍微复杂一些的模型试验，在现实世界中通常进行最多的就是网络请求的处理。因此在接下来的模型试验中，运行时为webassembly提供了一个“网络接口”函数&lt;code>getHttpResp&lt;/code>。这个函数的功能是接收一个url参数，并且请求此url，并将请求得到的结果返回给wasm。wasm逻辑就是调用此函数并打印此次请求的结果。&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/examplesimple.png" alt="image-20210708144948920">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/examplesimple.png" alt="image-20210708144948920">&lt;/p>
 &lt;h4 id="21-wasm代码">2.1 wasm代码&lt;/h4>
 &lt;p>wasm代码中定义了一个url，调用&lt;code>getHttpResp&lt;/code>函数并打印请求结果&lt;/p>
 &lt;pre tabindex="0">&lt;code>func main() {
@@ -549,7 +549,7 @@ return []wasmer.Value{wasmer.NewI32(1)}, nil
 )
 &lt;/code>&lt;/pre>&lt;h4 id="23-网络试验结果">2.3 网络试验结果&lt;/h4>
 &lt;p>程序正常运行并且在wasm中可以正常打印网络请求的结果。&lt;/p>
-&lt;p>&lt;img src="http://example.org/images/resultprint.png" alt="image-20210708150016833">&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/resultprint.png" alt="image-20210708150016833">&lt;/p>
 &lt;h3 id="额外说明">额外说明&lt;/h3>
 &lt;h5 id="通过共享内存交互">通过共享内存交互&lt;/h5>
 &lt;p>wasm只支持4种数据结构：int32、int64、float32、float64。当传递其他类型的数据，比如字符串时，需要通过共享内存来通信。通过&lt;/p></description></item></channel></rss>
