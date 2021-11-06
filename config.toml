@@ -1,6 +1,6 @@
-baseURL = "http://example.org/"
+baseURL = "https://taction.top/"
 languageCode = "zh"
-title = "My New Hugo Site"
+title = "Taction's Blog"
 theme = "docsy"
 
 # Google Analytics
