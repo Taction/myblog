@@ -1,4 +1,68 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Taction's Blog – platform</title><link>https://taction.top/serverless/platform/</link><description>Recent content in platform on Taction's Blog</description><generator>Hugo -- gohugo.io</generator><language>zh</language><lastBuildDate>Mon, 01 Nov 2021 13:41:20 +0800</lastBuildDate><atom:link href="https://taction.top/serverless/platform/index.xml" rel="self" type="application/rss+xml"/><item><title>Serverless: Knative Use</title><link>https://taction.top/serverless/platform/knative-use/</link><pubDate>Mon, 01 Nov 2021 13:41:20 +0800</pubDate><guid>https://taction.top/serverless/platform/knative-use/</guid><description>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Taction's Blog – platform</title><link>https://taction.top/serverless/platform/</link><description>Recent content in platform on Taction's Blog</description><generator>Hugo -- gohugo.io</generator><language>zh</language><lastBuildDate>Thu, 04 Nov 2021 15:36:50 +0800</lastBuildDate><atom:link href="https://taction.top/serverless/platform/index.xml" rel="self" type="application/rss+xml"/><item><title>Serverless: Debug Knative</title><link>https://taction.top/serverless/platform/debug-knative/</link><pubDate>Thu, 04 Nov 2021 15:36:50 +0800</pubDate><guid>https://taction.top/serverless/platform/debug-knative/</guid><description>
+&lt;p>TL;DR&lt;/p>
+&lt;p>本文主要介绍在本机IED中如何远程调试位于k8s中的knative程序。&lt;/p>
+&lt;h3 id="目标">目标&lt;/h3>
+&lt;p>由于knative组件运行在k8s中，当发生错误的时候，在对代码不是特别熟悉的情况下，单步调试程序能够观察程序运行的函数，以及运行过程中的上下文，对排查问题非常方便。实际knative程序允许你在k8s外运行服务组件，通过环境变量或者命令行参数指定kubeconfig和server参数即可。&lt;/p>
+&lt;p>但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的程序进行调试就是本文的目标。&lt;/p>
+&lt;h3 id="步骤">步骤&lt;/h3>
+&lt;h4 id="镜像">镜像&lt;/h4>
+&lt;blockquote>
+&lt;p>knative 镜像制作：https://www.likakuli.com/posts/knative-build/&lt;/p>
+&lt;/blockquote>
+&lt;p>首先要创建一个镜像，编译的二进制和启动命令都会有所不同。通过查看knative组件&lt;/p>
+&lt;p>由于knative使用&lt;a href="https://github.com/google/ko">ko&lt;/a>来进行镜像的制作和推送。我简单的看了一下，发现了解这个可能会给我带来一定的时间成本。所以我直接按照自己最舒服的方式自己写了一下Makefile和Dockerfile。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-makefile" data-lang="makefile">REGCFLAGS &lt;span style="color:#f92672">=&lt;/span> -gcflags &lt;span style="color:#e6db74">&amp;#34;all=-N -l&amp;#34;&lt;/span>
+SRC_FOLDER &lt;span style="color:#f92672">:=&lt;/span> &lt;span style="color:#66d9ef">$(&lt;/span>shell ls cmd&lt;span style="color:#66d9ef">)&lt;/span>
+&lt;span style="color:#a6e22e">prepare&lt;/span>&lt;span style="color:#f92672">:&lt;/span>
+&lt;span style="color:#66d9ef">if&lt;/span> &lt;span style="color:#f92672">[&lt;/span> ! -d &lt;span style="color:#e6db74">&amp;#34;./bin/&amp;#34;&lt;/span> &lt;span style="color:#f92672">]&lt;/span>; &lt;span style="color:#66d9ef">then&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> mkdir bin; &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> &lt;span style="color:#66d9ef">fi&lt;/span>
+&lt;span style="color:#a6e22e">default&lt;/span>&lt;span style="color:#f92672">:&lt;/span>
+@for dir in &lt;span style="color:#e6db74">${&lt;/span>SRC_FOLDER&lt;span style="color:#e6db74">}&lt;/span>; &lt;span style="color:#66d9ef">do&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> go build &lt;span style="color:#66d9ef">$(&lt;/span>REGCFLAGS&lt;span style="color:#66d9ef">)&lt;/span> -mod vendor -o bin/$$dir ./cmd/$$dir ; &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> &lt;span style="color:#66d9ef">done&lt;/span>
+&lt;span style="color:#a6e22e">remote&lt;/span>&lt;span style="color:#f92672">:&lt;/span> prepare default
+&lt;span style="color:#a6e22e">docker&lt;/span>&lt;span style="color:#f92672">:&lt;/span> remote
+@for dir in &lt;span style="color:#e6db74">${&lt;/span>SRC_FOLDER&lt;span style="color:#e6db74">}&lt;/span>; &lt;span style="color:#66d9ef">do&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> docker build --build-arg BIN&lt;span style="color:#f92672">=&lt;/span>$$dir -t docker4zc/$$dir . ; docker push docker4zc/$$dir ; &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> &lt;span style="color:#66d9ef">done&lt;/span>
+&lt;span style="color:#a6e22e">docker-local&lt;/span>&lt;span style="color:#f92672">:&lt;/span> remote
+@for dir in &lt;span style="color:#e6db74">${&lt;/span>SRC_FOLDER&lt;span style="color:#e6db74">}&lt;/span>; &lt;span style="color:#66d9ef">do&lt;/span> &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> docker build --build-arg BIN&lt;span style="color:#f92672">=&lt;/span>$$dir -t docker4zc/$$dir . ; &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;span style="color:#ae81ff">&lt;/span> &lt;span style="color:#66d9ef">done&lt;/span>
+&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span style="color:#66d9ef">FROM&lt;/span>&lt;span style="color:#e6db74"> golang:latest AS golang&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">ENV&lt;/span> GOPROXY&lt;span style="color:#f92672">=&lt;/span>https://goproxy.cn,direct&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">RUN&lt;/span> CGO_ENABLED&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">0&lt;/span> go get -ldflags &lt;span style="color:#e6db74">&amp;#39;-s -w -extldflags -static&amp;#39;&lt;/span> github.com/go-delve/delve/cmd/dlv&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#75715e">#FROM gcr.oneitfarm.com/distroless/static:noroot&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">FROM&lt;/span>&lt;span style="color:#e6db74"> ubuntu&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">ARG&lt;/span> BIN&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">WORKDIR&lt;/span>&lt;span style="color:#e6db74"> /&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">COPY&lt;/span> bin/&lt;span style="color:#e6db74">${&lt;/span>BIN&lt;span style="color:#e6db74">}&lt;/span> /execbin&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">COPY&lt;/span> --from&lt;span style="color:#f92672">=&lt;/span>golang /go/bin/dlv /&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">CMD&lt;/span> [&lt;span style="color:#e6db74">&amp;#34;/dlv&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;--listen=:2345&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;--headless=true&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;--api-version=2&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;--accept-multiclient&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;exec&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;/execbin&amp;#34;&lt;/span>]&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>首先你需要在运行命令的地方登陆自己的dockerhub账号，并且将我的dockerhub账号&lt;code>docker4zc&lt;/code>换成你自己的账号，这样你就可以把镜像推送到自己的仓库。然后你在项目主目录下运行&lt;code>make docker&lt;/code>即可。&lt;/p>
+&lt;p>然后你需要在这个网址&lt;code>https://github.com/knative/serving/releases/download/v0.26.0/serving-core.yaml&lt;/code>(将v0.26.0替换成你需要的版本)下载安装knative serving的yaml文件，并将你想要调试的组件镜像替换，如果是&lt;code>webhook&lt;/code>组件，那么就是将&lt;code>gcr.io/knative-releases/knative.dev/serving/cmd/webhook@sha256:d512342e1a1ec454ceade96923e21c24ec0f2cb780e86ced8e66eb62033c74b5&lt;/code>格式的镜像替换成&lt;code>docker.io/{your dockerhub account}/webhook:latest&lt;/code>。&lt;/p>
+&lt;p>另外由于我将基础镜像由&lt;code>gcr.oneitfarm.com/distroless/static:noroot&lt;/code>替换成了&lt;code>ubuntu&lt;/code>，所以你同时需要将yaml文件中每个deployment下&lt;code>runAsNonRoot: true&lt;/code>去掉。&lt;/p>
+&lt;p>接下来你就可以&lt;code>kubectl apply -f serving-core.yaml&lt;/code>将其部署到k8s中。&lt;/p>
+&lt;h3 id="端口转发">端口转发&lt;/h3>
+&lt;h4 id="转发一个本地端口到-pod-端口">转发一个本地端口到 Pod 端口&lt;/h4>
+&lt;p>以下命令将activator的2345端口转发到本地12345端口&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-bash" data-lang="bash">kubectl port-forward -n knative-serving webhook-7b9b84596d-245rh 12345:2345
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>这相当于&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-shell" data-lang="shell">kubectl port-forward -n knative-serving pods/webhook-7b9b84596d-245rh 12345:2345
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>或者&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">&lt;code class="language-shell" data-lang="shell">kubectl port-forward -n knative-serving deployment/webhook 12345:2345
+&lt;/code>&lt;/pre>&lt;/div>&lt;p>参考&lt;a href="https://kubernetes.io/zh/docs/tasks/access-application-cluster/port-forward-access-application-cluster/#%E8%BD%AC%E5%8F%91%E4%B8%80%E4%B8%AA%E6%9C%AC%E5%9C%B0%E7%AB%AF%E5%8F%A3%E5%88%B0-pod-%E7%AB%AF%E5%8F%A3">使用端口转发来访问集群中的应用&lt;/a>&lt;/p>
+&lt;p>如果是在minikube中运行，那么你就是在minikube所在机器运行以上命令。并通过机器ip+12345端口进行连接。如果是在k8s中运行，那么你可以在本地将kubectl设置对应的kubeconfig后，通过127.0.0.1+12345端口进行连接。&lt;/p>
+&lt;h4 id="goland-ide远程调试">Goland IDE远程调试&lt;/h4>
+&lt;p>VS code和goland都具有此功能，这里以goland为例。在创建时选择go remote类型，设置对应的host和port即可：&lt;/p>
+&lt;p>&lt;img src="https://taction.top/images/goremotedebug.png" alt="image-20211107153446536">&lt;/p>
+&lt;p>其他参考：&lt;/p>
+&lt;p>&lt;a href="https://zhuanlan.zhihu.com/p/149938368">在Kubernetes中远程调试Go服务&lt;/a>&lt;/p></description></item><item><title>Serverless: Knative Use</title><link>https://taction.top/serverless/platform/knative-use/</link><pubDate>Mon, 01 Nov 2021 13:41:20 +0800</pubDate><guid>https://taction.top/serverless/platform/knative-use/</guid><description>
 &lt;p>本文档主要介绍跟随&lt;a href="https://knative.dev/docs/getting-started/">官网入门教程&lt;/a>和&lt;a href="https://github.com/csantanapr/knative-minikube">minikube&lt;/a>案例运行knative的hello world。中间部分命令根据国内众所周知的网络特点做了一下适配。本篇基本未涉及原理性介绍。&lt;/p>
 &lt;p>首先确认安装&lt;a href="https://kind.sigs.k8s.io/docs/user/quick-start">kind&lt;/a>或者&lt;a href="https://minikube.sigs.k8s.io/docs/start/">minikube&lt;/a>、&lt;a href="https://kubernetes.io/docs/tasks/tools/">kubectl&lt;/a>、&lt;a href="https://knative.dev/docs/getting-started/#install-the-knative-cli">kn&lt;/a>这些必要的软件。如果你跟随本教程，那么你只需要确认安装minikube和kubectl即可。&lt;/p>
 &lt;h3 id="启动minikube">启动minikube&lt;/h3>
