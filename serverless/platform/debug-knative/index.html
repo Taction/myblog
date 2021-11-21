@@ -18,7 +18,7 @@
 <meta property="og:description" content="TL;DR
 本文主要介绍在本机IED中如何远程调试位于k8s中的knative程序。
 目标 由于knative组件运行在k8s中，当发生错误的时候，在对代码不是特别熟悉的情况下，单步调试程序能够观察程序运行的函数，以及运行过程中的上下文，对排查问题非常方便。实际knative程序允许你在k8s外运行服务组件，通过环境变量或者命令行参数指定kubeconfig和server参数即可。
-但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的程序进行调试就是本文的目标。
+但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的任意knative程序包括proxy进行调试就是本文的目标。
 步骤 镜像  knative 镜像制作：https://www.likakuli.com/posts/knative-build/
  首先要创建一个镜像，编译的二进制和启动命令都会有所不同。通过查看knative组件
 由于knative使用ko来进行镜像的制作和推送。我简单的看了一下，发现了解这个可能会给我带来一定的时间成本。所以我直接按照自己最舒服的方式自己写了一下Makefile和Dockerfile。
@@ -31,19 +31,19 @@ REGCFLAGS = -gcflags &#34;all=-N -l&#34; SRC_FOLDER := $(shell ls cmd) prepare: 
 <meta itemprop=description content="TL;DR
 本文主要介绍在本机IED中如何远程调试位于k8s中的knative程序。
 目标 由于knative组件运行在k8s中，当发生错误的时候，在对代码不是特别熟悉的情况下，单步调试程序能够观察程序运行的函数，以及运行过程中的上下文，对排查问题非常方便。实际knative程序允许你在k8s外运行服务组件，通过环境变量或者命令行参数指定kubeconfig和server参数即可。
-但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的程序进行调试就是本文的目标。
+但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的任意knative程序包括proxy进行调试就是本文的目标。
 步骤 镜像  knative 镜像制作：https://www.likakuli.com/posts/knative-build/
  首先要创建一个镜像，编译的二进制和启动命令都会有所不同。通过查看knative组件
 由于knative使用ko来进行镜像的制作和推送。我简单的看了一下，发现了解这个可能会给我带来一定的时间成本。所以我直接按照自己最舒服的方式自己写了一下Makefile和Dockerfile。
 REGCFLAGS = -gcflags &#34;all=-N -l&#34; SRC_FOLDER := $(shell ls cmd) prepare: if [ ! -d &#34;./bin/&#34; ]; then \  mkdir bin; \  fi default: @for dir in ${SRC_FOLDER}; do \  go build $(REGCFLAGS) -mod vendor -o bin/$$dir ./cmd/$$dir ; \  done remote: prepare default docker: remote @for dir in ${SRC_FOLDER}; do \  docker build --build-arg BIN=$$dir -t docker4zc/$$dir ."><meta itemprop=datePublished content="2021-11-04T15:36:50+08:00">
 <meta itemprop=dateModified content="2021-11-04T15:36:50+08:00">
-<meta itemprop=wordCount content="167">
+<meta itemprop=wordCount content="219">
 <meta itemprop=keywords content><meta name=twitter:card content="summary">
 <meta name=twitter:title content="Debug Knative">
 <meta name=twitter:description content="TL;DR
 本文主要介绍在本机IED中如何远程调试位于k8s中的knative程序。
 目标 由于knative组件运行在k8s中，当发生错误的时候，在对代码不是特别熟悉的情况下，单步调试程序能够观察程序运行的函数，以及运行过程中的上下文，对排查问题非常方便。实际knative程序允许你在k8s外运行服务组件，通过环境变量或者命令行参数指定kubeconfig和server参数即可。
-但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的程序进行调试就是本文的目标。
+但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的任意knative程序包括proxy进行调试就是本文的目标。
 步骤 镜像  knative 镜像制作：https://www.likakuli.com/posts/knative-build/
  首先要创建一个镜像，编译的二进制和启动命令都会有所不同。通过查看knative组件
 由于knative使用ko来进行镜像的制作和推送。我简单的看了一下，发现了解这个可能会给我带来一定的时间成本。所以我直接按照自己最舒服的方式自己写了一下Makefile和Dockerfile。
@@ -80,6 +80,16 @@ REGCFLAGS = -gcflags &#34;all=-N -l&#34; SRC_FOLDER := $(shell ls cmd) prepare: 
 <li class="collapse show">
 <ul class="td-sidebar-nav__section pr-md-3">
 <li class=td-sidebar-nav__section-title>
+<a href=/code/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">code</a>
+</li>
+<ul>
+<li class="collapse show" id=code>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-codeacpuquestion href=/code/acpuquestion/>sidecar cup</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
 <a href=/serverless/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">serverless</a>
 </li>
 <ul>
@@ -90,7 +100,7 @@ REGCFLAGS = -gcflags &#34;all=-N -l&#34; SRC_FOLDER := $(shell ls cmd) prepare: 
 </li>
 <ul>
 <li class="collapse show" id=serverlessplatform>
-<a class="td-sidebar-link td-sidebar-link__page active" id=m-serverlessplatformdebug-knative href=/serverless/platform/debug-knative/>Knative Use</a>
+<a class="td-sidebar-link td-sidebar-link__page active" id=m-serverlessplatformdebug-knative href=/serverless/platform/debug-knative/>Debug Knative</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-use href=/serverless/platform/knative-use/>Knative Use</a>
 </li>
 </ul>
@@ -126,6 +136,7 @@ REGCFLAGS = -gcflags &#34;all=-N -l&#34; SRC_FOLDER := $(shell ls cmd) prepare: 
 <li><a href=#目标>目标</a></li>
 <li><a href=#步骤>步骤</a></li>
 <li><a href=#端口转发>端口转发</a></li>
+<li><a href=#注意事项>注意事项</a></li>
 </ul>
 </li>
 </ul>
@@ -141,7 +152,7 @@ REGCFLAGS = -gcflags &#34;all=-N -l&#34; SRC_FOLDER := $(shell ls cmd) prepare: 
 <a href=https://taction.top/serverless/platform/>platform</a>
 </li>
 <li class="breadcrumb-item active" aria-current=page>
-<a href=https://taction.top/serverless/platform/debug-knative/>Knative Use</a>
+<a href=https://taction.top/serverless/platform/debug-knative/>Debug Knative</a>
 </li>
 </ol>
 </nav>
@@ -151,7 +162,7 @@ REGCFLAGS = -gcflags &#34;all=-N -l&#34; SRC_FOLDER := $(shell ls cmd) prepare: 
 <p>本文主要介绍在本机IED中如何远程调试位于k8s中的knative程序。</p>
 <h3 id=目标>目标</h3>
 <p>由于knative组件运行在k8s中，当发生错误的时候，在对代码不是特别熟悉的情况下，单步调试程序能够观察程序运行的函数，以及运行过程中的上下文，对排查问题非常方便。实际knative程序允许你在k8s外运行服务组件，通过环境变量或者命令行参数指定kubeconfig和server参数即可。</p>
-<p>但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的程序进行调试就是本文的目标。</p>
+<p>但是本文主要介绍另外一种思路，不是所有程序都能方便的运行在本地的。所以对于运行在k8s中的任意knative程序包括proxy进行调试就是本文的目标。</p>
 <h3 id=步骤>步骤</h3>
 <h4 id=镜像>镜像</h4>
 <blockquote>
@@ -214,8 +225,19 @@ SRC_FOLDER <span style=color:#f92672>:=</span> <span style=color:#66d9ef>$(</spa
 <h4 id=goland-ide远程调试>Goland IDE远程调试</h4>
 <p>VS code和goland都具有此功能，这里以goland为例。在创建时选择go remote类型，设置对应的host和port即可：</p>
 <p><img src=/images/goremotedebug.png alt=image-20211107153446536></p>
+<h3 id=注意事项>注意事项</h3>
+<h4 id=使用私有镜像仓库>使用私有镜像仓库</h4>
+<blockquote>
+<p>如果你在调试过程中发现<code>Unable to fetch image...x509: certificate signed by unknown authority</code>，你可以考虑是否由以下原因造成。</p>
+</blockquote>
+<p>如果你的服务使用的是私有的镜像仓库，你需要设置跳过tag resolving。如果你的私有仓库为<code>harbor.test.com</code>,你可以通过以下命令设置：</p>
+<pre tabindex=0><code>kubectl patch configmap -n knative-serving config-deployment -p &quot;{\&quot;data\&quot;: {\&quot;registriesSkippingTagResolving\&quot;: \&quot;harbor.test.com\&quot;}}&quot;
+</code></pre><h4 id=k8s探活>k8s探活</h4>
+<p>由于部分knative组件配置了<a href=https://kubernetes.io/zh/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/>k8s probe</a>探针，所以你在调试过程中由于执行太慢，发现有时候pod会被重启。所以当遇到这种情况的时候将<code>livenessProbe</code>和<code>readinessProbe</code>部分去掉即可。部署之前可以将yaml下载到本地，然后删掉这部分内容之后再apply。如果已经部署完成，以<code>autoscaler</code>为例可以通过<code>kubectl edit deploy -n knative-serving autoscaler </code> 编辑对应的yaml文件删除。</p>
+<p>【注意】：此更改应该仅用于测试。</p>
 <p>其他参考：</p>
 <p><a href=https://zhuanlan.zhihu.com/p/149938368>在Kubernetes中远程调试Go服务</a></p>
+<p><a href=https://github.com/knative/serving/issues/5126>Unable to fetch image &ldquo;gcr.io/knative-samples/helloworld-go&rdquo;: failed to resolve image to digest: Get &ldquo;https://gcr.io/v2/": x509: certificate signed by unknown authority</a></p>
 <div class="text-muted mt-5 pt-3 border-top">
 </div>
 </div>
