@@ -55,16 +55,6 @@
 <li class="collapse show">
 <ul class="td-sidebar-nav__section pr-md-3">
 <li class=td-sidebar-nav__section-title>
-<a href=/code/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">code</a>
-</li>
-<ul>
-<li class="collapse show" id=code>
-<a class="td-sidebar-link td-sidebar-link__page" id=m-codeacpuquestion href=/code/acpuquestion/>sidecar cup</a>
-</li>
-</ul>
-</ul>
-<ul class="td-sidebar-nav__section pr-md-3">
-<li class=td-sidebar-nav__section-title>
 <a href=/serverless/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">serverless</a>
 </li>
 <ul>
@@ -75,6 +65,10 @@
 </li>
 <ul>
 <li class="collapse show" id=serverlessplatform>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-demo href=/serverless/platform/knative-demo/>Knative Demo</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-queue href=/serverless/platform/knative-queue/>Knative Queue</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-scalefrom0 href=/serverless/platform/knative-scalefrom0/>Knative Scalefrom0</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-crd href=/serverless/platform/knative-crd/>Knative Crd</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformdebug-knative href=/serverless/platform/debug-knative/>Debug Knative</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-use href=/serverless/platform/knative-use/>Knative Use</a>
 </li>
@@ -92,6 +86,16 @@
 </li>
 </ul>
 </ul>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/code/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">code</a>
+</li>
+<ul>
+<li class="collapse show" id=code>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-codeacpuquestion href=/code/acpuquestion/>sidecar cup</a>
 </li>
 </ul>
 </ul>
@@ -118,7 +122,14 @@
 </nav>
 <div class=td-content>
 <h1>platform</h1>
-<p>介绍在serverless的一些不同的平台及其分析。</p>
+<p>介绍在serverless的一些不同的平台及其分析。目前主要是对于knative的介绍。</p>
+<p><a href=https://taction.top/serverless/platform/knative-use/>运行knative hello world</a>，对knative有一个大概的了解。</p>
+<p><a href=https://taction.top/serverless/platform/debug-knative/>如何 debug knative</a>，debug运行在k8s的knative程序，可以更好的了解程序运行细节。</p>
+<p><a href=https://taction.top/serverless/platform/knative-crd/>knative整体介绍及CRD介绍</a>，对knative有个简单的介绍，同时对controller源码结构有个简单的介绍。</p>
+<p><a href=https://taction.top/serverless/platform/knative-scalefrom0/>knative从0扩缩容介绍及源码解析</a>，本文主要介绍从0扩缩容原理，及从源码角度讲述这个过程中涉及的各个组件及其代码同时也包含扩容的决策逻辑。</p>
+<p><a href=https://taction.top/serverless/platform/knative-queue/>knative代理组件的指标上报</a>，本文主要从源码角度介绍knative代理组件，总体来看这部分代码相对还是比较简单的。</p>
+<p>最后以一个实际案例的方式，了解如果我们如果想<a href=https://taction.top/serverless/platform/knative-demo/>扩展knative revision支持引用deployment</a>应该对代码进行哪些修改。</p>
+<p>// todo:对knative核心组件的性能压测</p>
 <div class=section-index>
 </div>
 <div class="text-muted mt-5 pt-3 border-top">

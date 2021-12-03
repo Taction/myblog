@@ -1,0 +1,1108 @@
+<!doctype html><html lang=en class=no-js>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=generator content="Hugo 0.88.1"><meta name=ROBOTS content="NOINDEX, NOFOLLOW">
+<link rel="shortcut icon" href=/favicons/favicon.ico>
+<link rel=apple-touch-icon href=/favicons/apple-touch-icon-180x180.png sizes=180x180>
+<link rel=icon type=image/png href=/favicons/favicon-16x16.png sizes=16x16>
+<link rel=icon type=image/png href=/favicons/favicon-32x32.png sizes=32x32>
+<link rel=icon type=image/png href=/favicons/android-36x36.png sizes=36x36>
+<link rel=icon type=image/png href=/favicons/android-48x48.png sizes=48x48>
+<link rel=icon type=image/png href=/favicons/android-72x72.png sizes=72x72>
+<link rel=icon type=image/png href=/favicons/android-96x96.png sizes=96x96>
+<link rel=icon type=image/png href=/favicons/android-144x144.png sizes=144x144>
+<link rel=icon type=image/png href=/favicons/android-192x192.png sizes=192x192>
+<title>Knative Crd | Taction's Blog</title>
+<meta name=description content><meta property="og:title" content="Knative Crd">
+<meta property="og:description" content="TL；DR
+本文主要介绍knative中的CRD，及以一个CRD为例介绍，只创建了ksvc其他所有的衍生CRD是如何被创建的。最后以一个实际运行的knative service为例展示了各个实际CRD的案例内容。
+前置知识 在阅读本部分内容时，你应该已经对knative有了一个初步的了解和感觉，知道它是干什么的。另外可能需要你对k8s及自定义controller有一定的了解。如果你在阅读此部分内容有不知所云的感觉，你可以先了解下kubernetes sample-controller.另外《kubernetes编程》应该也会对你在这方面的了解有所帮助。
+CRD总览 knative在创建一个service（ksvc）后，会自动创建一系列的crd。以下是创建一个ksvc所会创建的所有crd。
+各个crd的基础功能在这里就不展开介绍了，只挑几个比较重点的说下：
+kingress创建的目的是兼容不同网关的，网关需要监听此资源，当有kingress被创建后，需要解析此规则形成网关自己的路由规则。
+revision是当前这个服务版本的一个核心CRD，一方面在于它创建了deployment和podautoscalers,并且podautoscalers中有ref字段指向此deployment。另一方面很多流程都是通过revision的Name或者Uid进行关联的。
+public service就是k8s的一个service只不过没有定义label selector，这个svc也是在冷启动时流量会转到activator的核心。因为它在服务没有pod的时候会指向activator地址由activator在pod启动后转发，在服务被缩放pod启动后，会指向实际的pod。这样对这个服务的访问只要是通过这个svc，不论服务当前有没有pod，最终都能被导向到实际的pod中。
+关于CRD的介绍在深入探究 Knative 扩缩容的奥秘文章中有一个比较好的介绍。
+Controller介绍 controller是这些crd自动创建及状态维护的核心组件。Knative Serving核心逻辑实现（上篇）这篇文章已经对代码结构做了一个非常好的概述，我在这里就不赘述了。
+这里就只是简要说明一下，在pkg/reconciler几乎每个文件夹对应一种CRD资源。对资源的处理就在这个文件夹中。然后每种资源都会有个ReconcileKind方法资源被创建和更新的时候都会触发这个方法。
+以ksvc为例，在pkg/reconciler/service/service.go文件中我们可以看到其ReconcileKind方法，这个方法主要就是创建其下层CRD。对于ksvc来说就是创建 Configuration 和 Route 资源。
+func (c *Reconciler) ReconcileKind(ctx context.Context, service *v1.Service) pkgreconciler.Event { ctx, cancel := context.WithTimeout(ctx, 10*time.Second) defer cancel() logger := logging.FromContext(ctx) config, err := c.config(ctx, service) if err != nil { return err } if config.Generation != config.Status.ObservedGeneration { // The Configuration hasn't yet reconciled our latest changes to  // its desired state, so its conditions are outdated.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://taction.top/serverless/platform/knative-crd/"><meta property="article:section" content="serverless">
+<meta property="article:published_time" content="2021-12-01T15:43:22+08:00">
+<meta property="article:modified_time" content="2021-12-01T15:43:22+08:00">
+<meta itemprop=name content="Knative Crd">
+<meta itemprop=description content="TL；DR
+本文主要介绍knative中的CRD，及以一个CRD为例介绍，只创建了ksvc其他所有的衍生CRD是如何被创建的。最后以一个实际运行的knative service为例展示了各个实际CRD的案例内容。
+前置知识 在阅读本部分内容时，你应该已经对knative有了一个初步的了解和感觉，知道它是干什么的。另外可能需要你对k8s及自定义controller有一定的了解。如果你在阅读此部分内容有不知所云的感觉，你可以先了解下kubernetes sample-controller.另外《kubernetes编程》应该也会对你在这方面的了解有所帮助。
+CRD总览 knative在创建一个service（ksvc）后，会自动创建一系列的crd。以下是创建一个ksvc所会创建的所有crd。
+各个crd的基础功能在这里就不展开介绍了，只挑几个比较重点的说下：
+kingress创建的目的是兼容不同网关的，网关需要监听此资源，当有kingress被创建后，需要解析此规则形成网关自己的路由规则。
+revision是当前这个服务版本的一个核心CRD，一方面在于它创建了deployment和podautoscalers,并且podautoscalers中有ref字段指向此deployment。另一方面很多流程都是通过revision的Name或者Uid进行关联的。
+public service就是k8s的一个service只不过没有定义label selector，这个svc也是在冷启动时流量会转到activator的核心。因为它在服务没有pod的时候会指向activator地址由activator在pod启动后转发，在服务被缩放pod启动后，会指向实际的pod。这样对这个服务的访问只要是通过这个svc，不论服务当前有没有pod，最终都能被导向到实际的pod中。
+关于CRD的介绍在深入探究 Knative 扩缩容的奥秘文章中有一个比较好的介绍。
+Controller介绍 controller是这些crd自动创建及状态维护的核心组件。Knative Serving核心逻辑实现（上篇）这篇文章已经对代码结构做了一个非常好的概述，我在这里就不赘述了。
+这里就只是简要说明一下，在pkg/reconciler几乎每个文件夹对应一种CRD资源。对资源的处理就在这个文件夹中。然后每种资源都会有个ReconcileKind方法资源被创建和更新的时候都会触发这个方法。
+以ksvc为例，在pkg/reconciler/service/service.go文件中我们可以看到其ReconcileKind方法，这个方法主要就是创建其下层CRD。对于ksvc来说就是创建 Configuration 和 Route 资源。
+func (c *Reconciler) ReconcileKind(ctx context.Context, service *v1.Service) pkgreconciler.Event { ctx, cancel := context.WithTimeout(ctx, 10*time.Second) defer cancel() logger := logging.FromContext(ctx) config, err := c.config(ctx, service) if err != nil { return err } if config.Generation != config.Status.ObservedGeneration { // The Configuration hasn't yet reconciled our latest changes to  // its desired state, so its conditions are outdated."><meta itemprop=datePublished content="2021-12-01T15:43:22+08:00">
+<meta itemprop=dateModified content="2021-12-01T15:43:22+08:00">
+<meta itemprop=wordCount content="2116">
+<meta itemprop=keywords content><meta name=twitter:card content="summary">
+<meta name=twitter:title content="Knative Crd">
+<meta name=twitter:description content="TL；DR
+本文主要介绍knative中的CRD，及以一个CRD为例介绍，只创建了ksvc其他所有的衍生CRD是如何被创建的。最后以一个实际运行的knative service为例展示了各个实际CRD的案例内容。
+前置知识 在阅读本部分内容时，你应该已经对knative有了一个初步的了解和感觉，知道它是干什么的。另外可能需要你对k8s及自定义controller有一定的了解。如果你在阅读此部分内容有不知所云的感觉，你可以先了解下kubernetes sample-controller.另外《kubernetes编程》应该也会对你在这方面的了解有所帮助。
+CRD总览 knative在创建一个service（ksvc）后，会自动创建一系列的crd。以下是创建一个ksvc所会创建的所有crd。
+各个crd的基础功能在这里就不展开介绍了，只挑几个比较重点的说下：
+kingress创建的目的是兼容不同网关的，网关需要监听此资源，当有kingress被创建后，需要解析此规则形成网关自己的路由规则。
+revision是当前这个服务版本的一个核心CRD，一方面在于它创建了deployment和podautoscalers,并且podautoscalers中有ref字段指向此deployment。另一方面很多流程都是通过revision的Name或者Uid进行关联的。
+public service就是k8s的一个service只不过没有定义label selector，这个svc也是在冷启动时流量会转到activator的核心。因为它在服务没有pod的时候会指向activator地址由activator在pod启动后转发，在服务被缩放pod启动后，会指向实际的pod。这样对这个服务的访问只要是通过这个svc，不论服务当前有没有pod，最终都能被导向到实际的pod中。
+关于CRD的介绍在深入探究 Knative 扩缩容的奥秘文章中有一个比较好的介绍。
+Controller介绍 controller是这些crd自动创建及状态维护的核心组件。Knative Serving核心逻辑实现（上篇）这篇文章已经对代码结构做了一个非常好的概述，我在这里就不赘述了。
+这里就只是简要说明一下，在pkg/reconciler几乎每个文件夹对应一种CRD资源。对资源的处理就在这个文件夹中。然后每种资源都会有个ReconcileKind方法资源被创建和更新的时候都会触发这个方法。
+以ksvc为例，在pkg/reconciler/service/service.go文件中我们可以看到其ReconcileKind方法，这个方法主要就是创建其下层CRD。对于ksvc来说就是创建 Configuration 和 Route 资源。
+func (c *Reconciler) ReconcileKind(ctx context.Context, service *v1.Service) pkgreconciler.Event { ctx, cancel := context.WithTimeout(ctx, 10*time.Second) defer cancel() logger := logging.FromContext(ctx) config, err := c.config(ctx, service) if err != nil { return err } if config.Generation != config.Status.ObservedGeneration { // The Configuration hasn't yet reconciled our latest changes to  // its desired state, so its conditions are outdated.">
+<link rel=preload href=/scss/main.min.be9fabc31fb114435a29bc299b30af9345624efc1a7040d5c14eddb3645b5315.css as=style>
+<link href=/scss/main.min.be9fabc31fb114435a29bc299b30af9345624efc1a7040d5c14eddb3645b5315.css rel=stylesheet integrity>
+<script src=https://code.jquery.com/jquery-3.5.1.min.js integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin=anonymous></script>
+</head>
+<body class=td-page>
+<header>
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+<a class=navbar-brand href=/>
+<span class=navbar-logo><svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 500 500" style="enable-background:new 0 0 500 500"><g><path style="fill:#fff" d="M116.8525 421.9722c-5.7041.0-10.3442-4.3127-10.3442-9.6129V88.183c0-5.3002 4.6401-9.6117 10.3442-9.6117H320.858c3.0347.0 9.3959.5498 11.7506 2.6302l.3545.3442 58.905 63.2912c2.3101 2.491 2.9202 8.4928 2.9202 11.3184v256.2039c0 5.3002-4.6407 9.6129-10.3436 9.6129H116.8525z"/><g><g><g><path style="fill:#767676" d="M384.4445 423.2066H116.852c-6.3839.0-11.5786-4.8658-11.5786-10.8474V88.1831c0-5.9804 5.1947-10.8461 11.5786-10.8461h204.0062c.377.0 9.2786.0329 12.568 2.9389l.3947.3833 58.9508 63.337c3.2135 3.4652 3.2514 11.7924 3.2514 12.1593v256.2036C396.0231 418.3408 390.8284 423.2066 384.4445 423.2066zM116.5079 411.9189c.0848.0278.1999.0531.3441.0531h267.5925c.1442.0.2581-.0253.3441-.0531V156.1556c-.0076-.9033-.3593-3.7347-.7034-5.0037l-57.6527-61.9416c-1.4651-.3176-4.4533-.6389-5.5742-.6389H116.852c-.143.0-.2594.024-.3441.0531V411.9189zm267.4533-261.149zM327.0321 89.371v.0013V89.371z"/></g></g></g><g><g><path style="fill:#5b7fc0" d="M189.0874 210.1754l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.025 2.454-11.4897 6.4116-15.4473C177.5953 212.627 183.0601 210.1742 189.0874 210.1754zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403S197.0816 234.1722 197.0804 232.033z"/><path style="opacity:.3;fill:#fff" d="M189.0898 210.176c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 212.6276 183.0612 210.176 189.0898 210.176zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 236.239 197.0839 234.2399 197.0839 232.0372z"/><g><defs><path id="SVGID_1_" d="M194.7376 237.6875c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.999 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 234.2399 196.1861 236.239 194.7376 237.6875z"/></defs><clipPath id="SVGID_2_"><use xlink:href="#SVGID_1_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_2_);fill:#fff" d="M190.0704 225.0237c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 225.7247 191.9774 225.0237 190.0704 225.0237z"/><path style="opacity:.13;clip-path:url(#SVGID_2_);fill:#020202" d="M190.0704 225.0237c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 225.7247 191.9774 225.0237 190.0704 225.0237z"/></g><g><defs><path id="SVGID_3_" d="M189.0898 210.176c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 212.6276 183.0612 210.176 189.0898 210.176zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 236.239 197.0839 234.2399 197.0839 232.0372z"/></defs><clipPath id="SVGID_4_"><use xlink:href="#SVGID_3_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_4_);fill:#5b7fc0" d="M172.6595 215.6045c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8612 12.0547.0024 21.8636-9.797 21.8613-21.8612.0024-3.8475-1.0151-7.6326-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 209.1953 176.6171 211.647 172.6595 215.6045z"/></g></g><rect x="198.8952" y="225.1043" style="fill:#5b7fc0" width="122.6266" height="13.8671"/></g><g><path style="fill:#d95140" d="M189.0874 155.7611l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.0249 2.454-11.4897 6.4116-15.4473C177.5953 158.2128 183.0601 155.7599 189.0874 155.7611zm7.993 21.8577c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403C196.2508 181.7667 197.0816 179.758 197.0804 177.6188z"/><path style="opacity:.3;fill:#fff" d="M189.0898 155.7617c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 158.2134 183.0612 155.7617 189.0898 155.7617zm7.9941 21.8613c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 181.8248 197.0839 179.8256 197.0839 177.623z"/><g><defs><path id="SVGID_5_" d="M194.7376 183.2733c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.9989 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 179.8256 196.1861 181.8248 194.7376 183.2733z"/></defs><clipPath id="SVGID_6_"><use xlink:href="#SVGID_5_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_6_);fill:#fff" d="M190.0704 170.6095c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 171.3104 191.9774 170.6095 190.0704 170.6095z"/><path style="opacity:.13;clip-path:url(#SVGID_6_);fill:#020202" d="M190.0704 170.6095c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 171.3104 191.9774 170.6095 190.0704 170.6095z"/></g><g><defs><path id="SVGID_7_" d="M189.0898 155.7617c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 158.2134 183.0612 155.7617 189.0898 155.7617zm7.9941 21.8613c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 181.8248 197.0839 179.8256 197.0839 177.623z"/></defs><clipPath id="SVGID_8_"><use xlink:href="#SVGID_7_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_8_);fill:#d95140" d="M172.6595 161.1903c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8613 12.0547.0024 21.8636-9.797 21.8613-21.8613.0024-3.8474-1.0151-7.6326-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 154.7811 176.6171 157.2327 172.6595 161.1903z"/></g><rect x="198.8952" y="170.69" style="fill:#d95140" width="122.6266" height="13.8671"/></g><g><g><path style="fill:#56a55c" d="M189.5379 264.6147l.0012-.0012c7.7751.0012 15.0294 4.1862 18.932 10.9235 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032-5.8394.0-11.3281-2.2733-15.458-6.4032-4.13-4.13-6.4032-9.6186-6.4056-15.4628.0012-6.0249 2.454-11.4897 6.4116-15.4472C178.0458 267.0663 183.5105 264.6135 189.5379 264.6147zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6538 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403C196.7013 290.6202 197.5321 288.6115 197.5309 286.4723z"/><path style="opacity:.3;fill:#fff" d="M189.5403 264.6153c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8065-21.8612-21.8613.0-6.0285 2.4516-11.492 6.4116-15.452C178.0482 267.0669 183.5117 264.6153 189.5403 264.6153zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.6366 290.6783 197.5344 288.6792 197.5344 286.4765z"/><g><defs><path id="SVGID_9_" d="M195.1881 292.1268c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.9989 7.9942-7.9941 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.5344 288.6792 196.6366 290.6783 195.1881 292.1268z"/></defs><clipPath id="SVGID_10_"><use xlink:href="#SVGID_9_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_10_);fill:#fff" d="M190.5209 279.463c-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7446-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9941 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C194.239 280.164 192.4279 279.463 190.5209 279.463z"/><path style="opacity:.13;clip-path:url(#SVGID_10_);fill:#020202" d="M190.5209 279.463c-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7446-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9941 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C194.239 280.164 192.4279 279.463 190.5209 279.463z"/></g><g><defs><path id="SVGID_11_" d="M189.5403 264.6153c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8065-21.8612-21.8613.0-6.0285 2.4516-11.492 6.4116-15.452C178.0482 267.0669 183.5117 264.6153 189.5403 264.6153zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.6366 290.6783 197.5344 288.6792 197.5344 286.4765z"/></defs><clipPath id="SVGID_12_"><use xlink:href="#SVGID_11_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_12_);fill:#56a55c" d="M173.11 270.0439c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8613 12.0547.0024 21.8636-9.797 21.8613-21.8613.0024-3.8474-1.0151-7.6326-2.9353-10.9462-3.8977-6.7325-11.1497-10.9151-18.926-10.9151C182.5311 263.6346 177.0676 266.0863 173.11 270.0439z"/></g></g><rect x="199.3456" y="279.5436" style="fill:#56a55c" width="122.6266" height="13.8671"/></g><g><g><path style="fill:#f1bc42" d="M189.0874 318.7208l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3305-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.025 2.454-11.4897 6.4116-15.4472C177.5953 321.1724 183.0601 318.7196 189.0874 318.7208zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403S197.0816 342.7176 197.0804 340.5784z"/><path style="opacity:.3;fill:#fff" d="M189.0898 318.7214c7.7763.0 15.0283 4.1826 18.926 10.915 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8612-12.0547.0024-21.8636-9.8065-21.8612-21.8612.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 321.173 183.0612 318.7214 189.0898 318.7214zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 344.7844 197.0839 342.7853 197.0839 340.5826z"/><g><defs><path id="SVGID_13_" d="M194.7376 346.2329c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.999 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 342.7853 196.1861 344.7844 194.7376 346.2329z"/></defs><clipPath id="SVGID_14_"><use xlink:href="#SVGID_13_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_14_);fill:#fff" d="M190.0704 333.5691c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0834 6.1218 2.8788C193.7885 334.2701 191.9774 333.5691 190.0704 333.5691z"/><path style="opacity:.13;clip-path:url(#SVGID_14_);fill:#020202" d="M190.0704 333.5691c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0834 6.1218 2.8788C193.7885 334.2701 191.9774 333.5691 190.0704 333.5691z"/></g><g><defs><path id="SVGID_15_" d="M189.0898 318.7214c7.7763.0 15.0283 4.1826 18.926 10.915 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8612-12.0547.0024-21.8636-9.8065-21.8612-21.8612.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 321.173 183.0612 318.7214 189.0898 318.7214zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 344.7844 197.0839 342.7853 197.0839 340.5826z"/></defs><clipPath id="SVGID_16_"><use xlink:href="#SVGID_15_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_16_);fill:#f1bc42" d="M172.6595 324.15c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8612 12.0547.0024 21.8636-9.797 21.8613-21.8612.0024-3.8474-1.0151-7.6327-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 317.7407 176.6171 320.1924 172.6595 324.15z"/></g></g><rect x="198.8952" y="333.6497" style="fill:#f1bc42" width="122.6266" height="13.8671"/></g></g></svg></span><span class=font-weight-bold>Taction's Blog</span>
+</a>
+<div class="td-navbar-nav-scroll ml-md-auto" id=main_navbar>
+<ul class="navbar-nav mt-2 mt-lg-0">
+</ul>
+</div>
+<div class="navbar-nav d-none d-lg-block">
+</div>
+</nav>
+</header>
+<div class="container-fluid td-outer">
+<div class=td-main>
+<div class="row flex-xl-nowrap">
+<div class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+<div id=td-sidebar-menu class=td-sidebar__inner>
+<nav class="collapse td-sidebar-nav pt-2 pl-4" id=td-section-nav>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section"></a>
+</li>
+<ul>
+<li class="collapse show">
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">serverless</a>
+</li>
+<ul>
+<li class="collapse show" id=serverless>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/platform/ class="align-left pl-0 pr-2 active td-sidebar-link td-sidebar-link__section">platform</a>
+</li>
+<ul>
+<li class="collapse show" id=serverlessplatform>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-demo href=/serverless/platform/knative-demo/>Knative Demo</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-queue href=/serverless/platform/knative-queue/>Knative Queue</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-scalefrom0 href=/serverless/platform/knative-scalefrom0/>Knative Scalefrom0</a>
+<a class="td-sidebar-link td-sidebar-link__page active" id=m-serverlessplatformknative-crd href=/serverless/platform/knative-crd/>Knative Crd</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformdebug-knative href=/serverless/platform/debug-knative/>Debug Knative</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-use href=/serverless/platform/knative-use/>Knative Use</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/webassembly/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">WebAssembly</a>
+</li>
+<ul>
+<li class="collapse show" id=serverlesswebassembly>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm2 href=/serverless/webassembly/wasm2/>相关项目分析</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblymanage-wasm-using-docker href=/serverless/webassembly/manage-wasm-using-docker/>docker+wasm</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm1 href=/serverless/webassembly/wasm1/>wasm概述</a>
+</li>
+</ul>
+</ul>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/code/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">code</a>
+</li>
+<ul>
+<li class="collapse show" id=code>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-codeacpuquestion href=/code/acpuquestion/>sidecar cup</a>
+</li>
+</ul>
+</ul>
+</li>
+</ul>
+</ul>
+</nav>
+</div>
+</div>
+<div class="d-none d-xl-block col-xl-2 td-toc d-print-none">
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+</div>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#前置知识>前置知识</a></li>
+<li><a href=#crd总览>CRD总览</a></li>
+<li><a href=#controller介绍>Controller介绍</a></li>
+<li><a href=#webhook介绍>webhook介绍</a></li>
+<li><a href=#附crd示例>附CRD示例</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+<main class="col-12 col-md-9 col-xl-8 pl-md-5" role=main>
+<nav aria-label=breadcrumb class="d-none d-md-block d-print-none">
+<ol class="breadcrumb spb-1">
+<li class=breadcrumb-item>
+<a href=https://taction.top/serverless/>serverless</a>
+</li>
+<li class=breadcrumb-item>
+<a href=https://taction.top/serverless/platform/>platform</a>
+</li>
+<li class="breadcrumb-item active" aria-current=page>
+<a href=https://taction.top/serverless/platform/knative-crd/>Knative Crd</a>
+</li>
+</ol>
+</nav>
+<div class=td-content>
+<h1>Knative Crd</h1>
+<p>TL；DR</p>
+<p>本文主要介绍knative中的CRD，及以一个CRD为例介绍，只创建了ksvc其他所有的衍生CRD是如何被创建的。最后以一个实际运行的knative service为例展示了各个实际CRD的案例内容。</p>
+<h3 id=前置知识>前置知识</h3>
+<p>在阅读本部分内容时，你应该已经对knative有了一个初步的了解和感觉，知道它是干什么的。另外可能需要你对k8s及自定义controller有一定的了解。如果你在阅读此部分内容有不知所云的感觉，你可以先了解下<a href=https://github.com/kubernetes/sample-controller>kubernetes sample-controller</a>.另外《kubernetes编程》应该也会对你在这方面的了解有所帮助。</p>
+<h3 id=crd总览>CRD总览</h3>
+<p>knative在创建一个service（ksvc）后，会自动创建一系列的crd。以下是创建一个ksvc所会创建的所有crd。</p>
+<p>各个crd的基础功能在这里就不展开介绍了，只挑几个比较重点的说下：</p>
+<p>kingress创建的目的是兼容不同网关的，网关需要监听此资源，当有kingress被创建后，需要解析此规则形成网关自己的路由规则。</p>
+<p>revision是当前这个服务版本的一个核心CRD，一方面在于它创建了<code>deployment</code>和<code>podautoscalers</code>,并且<code>podautoscalers</code>中有ref字段指向此<code>deployment</code>。另一方面很多流程都是通过revision的Name或者Uid进行关联的。</p>
+<p>public service就是k8s的一个service只不过没有定义label selector，这个svc也是在冷启动时流量会转到activator的核心。因为它在服务没有pod的时候会指向activator地址由activator在pod启动后转发，在服务被缩放pod启动后，会指向实际的pod。这样对这个服务的访问只要是通过这个svc，不论服务当前有没有pod，最终都能被导向到实际的pod中。</p>
+<p><img src=https://image-1255620078.cos.ap-nanjing.myqcloud.com/image-20211201162120869.png alt=image-20211201162120869></p>
+<p>关于CRD的介绍在<a href=https://mp.weixin.qq.com/s/O9LXnIQknW-vH_mwrkQltA>深入探究 Knative 扩缩容的奥秘</a>文章中有一个比较好的介绍。</p>
+<h3 id=controller介绍>Controller介绍</h3>
+<p>controller是这些crd自动创建及状态维护的核心组件。<a href=https://www.mdnice.com/writing/bb331f71193c4c28903b63209aeeb14b>Knative Serving核心逻辑实现（上篇）</a>这篇文章已经对代码结构做了一个非常好的概述，我在这里就不赘述了。</p>
+<p>这里就只是简要说明一下，在<code>pkg/reconciler</code>几乎每个文件夹对应一种CRD资源。对资源的处理就在这个文件夹中。然后每种资源都会有个<code>ReconcileKind</code>方法资源被创建和更新的时候都会触发这个方法。</p>
+<p>以ksvc为例，在<code>pkg/reconciler/service/service.go</code>文件中我们可以看到其<code>ReconcileKind</code>方法，这个方法主要就是创建其下层CRD。对于ksvc来说就是创建 <code>Configuration</code> 和 <code>Route</code> 资源。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Reconciler</span>) <span style=color:#a6e22e>ReconcileKind</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>service</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Service</span>) <span style=color:#a6e22e>pkgreconciler</span>.<span style=color:#a6e22e>Event</span> {
+   <span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>cancel</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>WithTimeout</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#ae81ff>10</span><span style=color:#f92672>*</span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>)
+   <span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>cancel</span>()
+
+   <span style=color:#a6e22e>logger</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>logging</span>.<span style=color:#a6e22e>FromContext</span>(<span style=color:#a6e22e>ctx</span>)
+
+   <span style=color:#a6e22e>config</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>config</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>service</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>config</span>.<span style=color:#a6e22e>Generation</span> <span style=color:#f92672>!=</span> <span style=color:#a6e22e>config</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>ObservedGeneration</span> {
+      <span style=color:#75715e>// The Configuration hasn&#39;t yet reconciled our latest changes to
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// its desired state, so its conditions are outdated.
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>MarkConfigurationNotReconciled</span>()
+
+      <span style=color:#75715e>// If BYO-Revision name is used we must serialize reconciling the Configuration
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// and Route. Wait for observed generation to match before continuing.
+</span><span style=color:#75715e></span>      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>config</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>GetTemplate</span>().<span style=color:#a6e22e>Name</span> <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#34;&#34;</span> {
+         <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+      }
+   } <span style=color:#66d9ef>else</span> {
+      <span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Debugf</span>(<span style=color:#e6db74>&#34;Configuration Conditions = %#v&#34;</span>, <span style=color:#a6e22e>config</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>Conditions</span>)
+      <span style=color:#75715e>// Update our Status based on the state of our underlying Configuration.
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>PropagateConfigurationStatus</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>config</span>.<span style=color:#a6e22e>Status</span>)
+   }
+
+   <span style=color:#75715e>// When the Configuration names a Revision, check that the named Revision is owned
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// by our Configuration and matches its generation before reprogramming the Route,
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// otherwise a bad patch could lead to folks inadvertently routing traffic to a
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// pre-existing Revision (possibly for another Configuration).
+</span><span style=color:#75715e></span>   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>CheckNameAvailability</span>(<span style=color:#a6e22e>config</span>, <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>revisionLister</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> <span style=color:#f92672>&amp;&amp;</span>
+      !<span style=color:#a6e22e>apierrs</span>.<span style=color:#a6e22e>IsNotFound</span>(<span style=color:#a6e22e>err</span>) {
+      <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>MarkRevisionNameTaken</span>(<span style=color:#a6e22e>config</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>GetTemplate</span>().<span style=color:#a6e22e>Name</span>)
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+   }
+
+   <span style=color:#a6e22e>route</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>route</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>service</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+
+   <span style=color:#75715e>// Update our Status based on the state of our underlying Route.
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>ss</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Status</span>
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>route</span>.<span style=color:#a6e22e>Generation</span> <span style=color:#f92672>!=</span> <span style=color:#a6e22e>route</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>ObservedGeneration</span> {
+      <span style=color:#75715e>// The Route hasn&#39;t yet reconciled our latest changes to
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// its desired state, so its conditions are outdated.
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>ss</span>.<span style=color:#a6e22e>MarkRouteNotReconciled</span>()
+   } <span style=color:#66d9ef>else</span> {
+      <span style=color:#75715e>// Update our Status based on the state of our underlying Route.
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>ss</span>.<span style=color:#a6e22e>PropagateRouteStatus</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>route</span>.<span style=color:#a6e22e>Status</span>)
+   }
+
+   <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>checkRoutesNotReady</span>(<span style=color:#a6e22e>config</span>, <span style=color:#a6e22e>logger</span>, <span style=color:#a6e22e>route</span>, <span style=color:#a6e22e>service</span>)
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><p>创建configuration资源</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Reconciler</span>) <span style=color:#a6e22e>config</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>service</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Service</span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Configuration</span>, <span style=color:#66d9ef>error</span>) {
+   <span style=color:#a6e22e>recorder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>controller</span>.<span style=color:#a6e22e>GetEventRecorder</span>(<span style=color:#a6e22e>ctx</span>)
+   <span style=color:#a6e22e>configName</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>resourcenames</span>.<span style=color:#a6e22e>Configuration</span>(<span style=color:#a6e22e>service</span>)
+   <span style=color:#a6e22e>config</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>configurationLister</span>.<span style=color:#a6e22e>Configurations</span>(<span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Namespace</span>).<span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>configName</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>apierrs</span>.<span style=color:#a6e22e>IsNotFound</span>(<span style=color:#a6e22e>err</span>) {
+      <span style=color:#a6e22e>config</span>, <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>createConfiguration</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>service</span>)
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#a6e22e>recorder</span>.<span style=color:#a6e22e>Eventf</span>(<span style=color:#a6e22e>service</span>, <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>EventTypeWarning</span>, <span style=color:#e6db74>&#34;CreationFailed&#34;</span>, <span style=color:#e6db74>&#34;Failed to create Configuration %q: %v&#34;</span>, <span style=color:#a6e22e>configName</span>, <span style=color:#a6e22e>err</span>)
+         <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;failed to create Configuration: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+      }
+      <span style=color:#a6e22e>recorder</span>.<span style=color:#a6e22e>Eventf</span>(<span style=color:#a6e22e>service</span>, <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>EventTypeNormal</span>, <span style=color:#e6db74>&#34;Created&#34;</span>, <span style=color:#e6db74>&#34;Created Configuration %q&#34;</span>, <span style=color:#a6e22e>configName</span>)
+   } <span style=color:#66d9ef>else</span> <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;failed to get Configuration: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+   } <span style=color:#66d9ef>else</span> <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>IsControlledBy</span>(<span style=color:#a6e22e>config</span>, <span style=color:#a6e22e>service</span>) {
+      <span style=color:#75715e>// Surface an error in the service&#39;s status,and return an error.
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>MarkConfigurationNotOwned</span>(<span style=color:#a6e22e>configName</span>)
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;service: %q does not own configuration: %q&#34;</span>, <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Name</span>, <span style=color:#a6e22e>configName</span>)
+   } <span style=color:#66d9ef>else</span> <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>config</span>, <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>reconcileConfiguration</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>service</span>, <span style=color:#a6e22e>config</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;failed to reconcile Configuration: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+   }
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>config</span>, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><p>创建route资源</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Reconciler</span>) <span style=color:#a6e22e>route</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>service</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Service</span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Route</span>, <span style=color:#66d9ef>error</span>) {
+   <span style=color:#a6e22e>recorder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>controller</span>.<span style=color:#a6e22e>GetEventRecorder</span>(<span style=color:#a6e22e>ctx</span>)
+   <span style=color:#a6e22e>routeName</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>resourcenames</span>.<span style=color:#a6e22e>Route</span>(<span style=color:#a6e22e>service</span>)
+   <span style=color:#a6e22e>route</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>routeLister</span>.<span style=color:#a6e22e>Routes</span>(<span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Namespace</span>).<span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>routeName</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>apierrs</span>.<span style=color:#a6e22e>IsNotFound</span>(<span style=color:#a6e22e>err</span>) {
+      <span style=color:#a6e22e>route</span>, <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>createRoute</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>service</span>)
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#a6e22e>recorder</span>.<span style=color:#a6e22e>Eventf</span>(<span style=color:#a6e22e>service</span>, <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>EventTypeWarning</span>, <span style=color:#e6db74>&#34;CreationFailed&#34;</span>, <span style=color:#e6db74>&#34;Failed to create Route %q: %v&#34;</span>, <span style=color:#a6e22e>routeName</span>, <span style=color:#a6e22e>err</span>)
+         <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;failed to create Route: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+      }
+      <span style=color:#a6e22e>recorder</span>.<span style=color:#a6e22e>Eventf</span>(<span style=color:#a6e22e>service</span>, <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>EventTypeNormal</span>, <span style=color:#e6db74>&#34;Created&#34;</span>, <span style=color:#e6db74>&#34;Created Route %q&#34;</span>, <span style=color:#a6e22e>routeName</span>)
+   } <span style=color:#66d9ef>else</span> <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;failed to get Route: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+   } <span style=color:#66d9ef>else</span> <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>IsControlledBy</span>(<span style=color:#a6e22e>route</span>, <span style=color:#a6e22e>service</span>) {
+      <span style=color:#75715e>// Surface an error in the service&#39;s status, and return an error.
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>MarkRouteNotOwned</span>(<span style=color:#a6e22e>routeName</span>)
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;service: %q does not own route: %q&#34;</span>, <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Name</span>, <span style=color:#a6e22e>routeName</span>)
+   } <span style=color:#66d9ef>else</span> <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>route</span>, <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>reconcileRoute</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>service</span>, <span style=color:#a6e22e>route</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;failed to reconcile Route: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+   }
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>route</span>, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><h3 id=webhook介绍>webhook介绍</h3>
+<p>webhook的作用就是对CRD的个项内容进行合规性检查。这里先略过对具体执行代码的介绍，最终对各个crd合规性的校验在<code>pkg/apis/serving</code>文件夹下，有3个版本文件夹，以v1为例，每个CRD的校验逻辑都在xxx_validate.go文件中。以ksvc为例，其文件中有对Service crd和ServiceSpec的合法校验，当创建的crd校验不通过时，就会拒绝这个crd的创建。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Validate makes sure that Service is properly configured.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Service</span>) <span style=color:#a6e22e>Validate</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) (<span style=color:#a6e22e>errs</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>FieldError</span>) {
+   <span style=color:#75715e>// If we are in a status sub resource update, the metadata and spec cannot change.
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// So, to avoid rejecting controller status updates due to validations that may
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// have changed (i.e. due to config-defaults changes), we elide the metadata and
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// spec validation.
+</span><span style=color:#75715e></span>   <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>IsInStatusUpdate</span>(<span style=color:#a6e22e>ctx</span>) {
+      <span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>errs</span>.<span style=color:#a6e22e>Also</span>(<span style=color:#a6e22e>serving</span>.<span style=color:#a6e22e>ValidateObjectMetadata</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>GetObjectMeta</span>(), <span style=color:#66d9ef>false</span>))
+      <span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>errs</span>.<span style=color:#a6e22e>Also</span>(<span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>validateLabels</span>().<span style=color:#a6e22e>ViaField</span>(<span style=color:#e6db74>&#34;labels&#34;</span>))
+      <span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>errs</span>.<span style=color:#a6e22e>Also</span>(<span style=color:#a6e22e>serving</span>.<span style=color:#a6e22e>ValidateRolloutDurationAnnotation</span>(
+         <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>GetAnnotations</span>()).<span style=color:#a6e22e>ViaField</span>(<span style=color:#e6db74>&#34;annotations&#34;</span>))
+      <span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>errs</span>.<span style=color:#a6e22e>ViaField</span>(<span style=color:#e6db74>&#34;metadata&#34;</span>)
+
+      <span style=color:#a6e22e>ctx</span> = <span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>WithinParent</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>ObjectMeta</span>)
+      <span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>errs</span>.<span style=color:#a6e22e>Also</span>(<span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Validate</span>(<span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>WithinSpec</span>(<span style=color:#a6e22e>ctx</span>)).<span style=color:#a6e22e>ViaField</span>(<span style=color:#e6db74>&#34;spec&#34;</span>))
+   }
+
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>IsInUpdate</span>(<span style=color:#a6e22e>ctx</span>) {
+      <span style=color:#a6e22e>original</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>GetBaseline</span>(<span style=color:#a6e22e>ctx</span>).(<span style=color:#f92672>*</span><span style=color:#a6e22e>Service</span>)
+      <span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>errs</span>.<span style=color:#a6e22e>Also</span>(
+         <span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>ValidateCreatorAndModifier</span>(
+            <span style=color:#a6e22e>original</span>.<span style=color:#a6e22e>Spec</span>, <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Spec</span>, <span style=color:#a6e22e>original</span>.<span style=color:#a6e22e>GetAnnotations</span>(),
+            <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>GetAnnotations</span>(), <span style=color:#a6e22e>serving</span>.<span style=color:#a6e22e>GroupName</span>).<span style=color:#a6e22e>ViaField</span>(<span style=color:#e6db74>&#34;metadata.annotations&#34;</span>))
+      <span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>errs</span>.<span style=color:#a6e22e>Also</span>(
+         <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>ConfigurationSpec</span>.<span style=color:#a6e22e>Template</span>.<span style=color:#a6e22e>VerifyNameChange</span>(<span style=color:#a6e22e>ctx</span>,
+            <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>original</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>ConfigurationSpec</span>.<span style=color:#a6e22e>Template</span>).<span style=color:#a6e22e>ViaField</span>(<span style=color:#e6db74>&#34;spec.template&#34;</span>))
+   }
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>errs</span>
+}
+
+<span style=color:#75715e>// Validate implements apis.Validatable
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>ss</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>ServiceSpec</span>) <span style=color:#a6e22e>Validate</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#f92672>*</span><span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>FieldError</span> {
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ss</span>.<span style=color:#a6e22e>ConfigurationSpec</span>.<span style=color:#a6e22e>Validate</span>(<span style=color:#a6e22e>ctx</span>).<span style=color:#a6e22e>Also</span>(
+      <span style=color:#75715e>// Within the context of Service, the RouteSpec has a default
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// configurationName.
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>ss</span>.<span style=color:#a6e22e>RouteSpec</span>.<span style=color:#a6e22e>Validate</span>(<span style=color:#a6e22e>WithDefaultConfigurationName</span>(<span style=color:#a6e22e>ctx</span>)))
+}
+
+<span style=color:#75715e>// validateLabels function validates service labels
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Service</span>) <span style=color:#a6e22e>validateLabels</span>() (<span style=color:#a6e22e>errs</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>FieldError</span>) {
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>val</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Labels</span>[<span style=color:#a6e22e>network</span>.<span style=color:#a6e22e>VisibilityLabelKey</span>]; <span style=color:#a6e22e>ok</span> {
+      <span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>errs</span>.<span style=color:#a6e22e>Also</span>(<span style=color:#a6e22e>validateClusterVisibilityLabel</span>(<span style=color:#a6e22e>val</span>))
+   }
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>errs</span>
+}
+</code></pre></div><h3 id=附crd示例>附CRD示例</h3>
+<h4 id=kservice>kservice</h4>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Service</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>kubectl.kubernetes.io/last-applied-configuration</span>: |<span style=color:#e6db74>
+</span><span style=color:#e6db74>      </span>      {<span style=color:#e6db74>&#34;apiVersion&#34;</span>:<span style=color:#e6db74>&#34;serving.knative.dev/v1&#34;</span>,<span style=color:#e6db74>&#34;kind&#34;</span>:<span style=color:#e6db74>&#34;Service&#34;</span>,<span style=color:#e6db74>&#34;metadata&#34;</span>:{<span style=color:#e6db74>&#34;annotations&#34;</span>:{},<span style=color:#e6db74>&#34;name&#34;</span>:<span style=color:#e6db74>&#34;hello&#34;</span>,<span style=color:#e6db74>&#34;namespace&#34;</span>:<span style=color:#e6db74>&#34;default&#34;</span>},<span style=color:#e6db74>&#34;spec&#34;</span>:{<span style=color:#e6db74>&#34;template&#34;</span>:{<span style=color:#e6db74>&#34;spec&#34;</span>:{<span style=color:#e6db74>&#34;containers&#34;</span>:[{<span style=color:#e6db74>&#34;env&#34;</span>:[{<span style=color:#e6db74>&#34;name&#34;</span>:<span style=color:#e6db74>&#34;TARGET&#34;</span>,<span style=color:#e6db74>&#34;value&#34;</span>:<span style=color:#e6db74>&#34;Knative&#34;</span>}],<span style=color:#e6db74>&#34;image&#34;</span>:<span style=color:#e6db74>&#34;gcr.oneitfarm.com/knative-samples/helloworld-go&#34;</span>,<span style=color:#e6db74>&#34;ports&#34;</span>:[{<span style=color:#e6db74>&#34;containerPort&#34;</span>:<span style=color:#ae81ff>8080</span>}]}]}}}}
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:33:11Z&#34;</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;1400935&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>template</span>:
+    <span style=color:#f92672>spec</span>:
+      <span style=color:#f92672>containerConcurrency</span>: <span style=color:#ae81ff>0</span>
+      <span style=color:#f92672>containers</span>:
+      - <span style=color:#f92672>env</span>:
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>TARGET</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>Knative</span>
+        <span style=color:#f92672>image</span>: <span style=color:#ae81ff>gcr.oneitfarm.com/knative-samples/helloworld-go</span>
+        <span style=color:#f92672>name</span>: <span style=color:#ae81ff>user-container</span>
+        <span style=color:#f92672>ports</span>:
+        - <span style=color:#f92672>containerPort</span>: <span style=color:#ae81ff>8080</span>
+          <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+        <span style=color:#f92672>readinessProbe</span>:
+          <span style=color:#f92672>successThreshold</span>: <span style=color:#ae81ff>1</span>
+          <span style=color:#f92672>tcpSocket</span>:
+            <span style=color:#f92672>port</span>: <span style=color:#ae81ff>0</span>
+        <span style=color:#f92672>resources</span>: {}
+      <span style=color:#f92672>enableServiceLinks</span>: <span style=color:#66d9ef>false</span>
+      <span style=color:#f92672>timeoutSeconds</span>: <span style=color:#ae81ff>300</span>
+  <span style=color:#f92672>traffic</span>:
+  - <span style=color:#f92672>latestRevision</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>percent</span>: <span style=color:#ae81ff>100</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>address</span>:
+    <span style=color:#f92672>url</span>: <span style=color:#ae81ff>http://hello.default.svc.cluster.local</span>
+  <span style=color:#f92672>latestCreatedRevisionName</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>latestReadyRevisionName</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>traffic</span>:
+  - <span style=color:#f92672>latestRevision</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>percent</span>: <span style=color:#ae81ff>100</span>
+    <span style=color:#f92672>revisionName</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>url</span>: <span style=color:#ae81ff>http://hello.default.10.103.31.251.nip.io</span>
+</code></pre></div><h4 id=service-private>service private</h4>
+<p>注意private的service具有selector，永远指向对应的deployment的所有pod。在没有pod的时候这个svc就不会对应到任何地址上。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>selector</span>:
+    <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+</code></pre></div><p>完整内容：</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Service</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>autoscaling.knative.dev/class</span>: <span style=color:#ae81ff>kpa.autoscaling.knative.dev</span>
+    <span style=color:#f92672>serving.knative.dev/creator</span>: <span style=color:#ae81ff>minikube-user</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:59:31Z&#34;</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>app</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>networking.internal.knative.dev/serverlessservice</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>networking.internal.knative.dev/serviceType</span>: <span style=color:#ae81ff>Private</span>
+    <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+    <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+    <span style=color:#f92672>serving.knative.dev/revision</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001-private</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>networking.internal.knative.dev/v1alpha1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ServerlessService</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>cb0495e0-f248-460f-9e5c-ecdd5af12b24</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;1397163&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>cbd1cb73-6e29-46a1-b532-96659cddfffd</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>clusterIP</span>: <span style=color:#ae81ff>10.101.43.6</span>
+  <span style=color:#f92672>clusterIPs</span>:
+  - <span style=color:#ae81ff>10.101.43.6</span>
+  <span style=color:#f92672>ipFamilies</span>:
+  - <span style=color:#ae81ff>IPv4</span>
+  <span style=color:#f92672>ipFamilyPolicy</span>: <span style=color:#ae81ff>SingleStack</span>
+  <span style=color:#f92672>ports</span>:
+  - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http</span>
+    <span style=color:#f92672>port</span>: <span style=color:#ae81ff>80</span>
+    <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+    <span style=color:#f92672>targetPort</span>: <span style=color:#ae81ff>8012</span>
+  - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http-autometric</span>
+    <span style=color:#f92672>port</span>: <span style=color:#ae81ff>9090</span>
+    <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+    <span style=color:#f92672>targetPort</span>: <span style=color:#ae81ff>http-autometric</span>
+  - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http-usermetric</span>
+    <span style=color:#f92672>port</span>: <span style=color:#ae81ff>9091</span>
+    <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+    <span style=color:#f92672>targetPort</span>: <span style=color:#ae81ff>http-usermetric</span>
+  - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http-queueadm</span>
+    <span style=color:#f92672>port</span>: <span style=color:#ae81ff>8022</span>
+    <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+    <span style=color:#f92672>targetPort</span>: <span style=color:#ae81ff>8022</span>
+  - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http-istio</span>
+    <span style=color:#f92672>port</span>: <span style=color:#ae81ff>8012</span>
+    <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+    <span style=color:#f92672>targetPort</span>: <span style=color:#ae81ff>8012</span>
+  <span style=color:#f92672>selector</span>:
+    <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+  <span style=color:#f92672>sessionAffinity</span>: <span style=color:#ae81ff>None</span>
+  <span style=color:#f92672>type</span>: <span style=color:#ae81ff>ClusterIP</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>loadBalancer</span>: {}
+</code></pre></div><h4 id=configuration>configuration</h4>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Configuration</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>serving.knative.dev/routes</span>: <span style=color:#ae81ff>hello</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:40:53Z&#34;</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Service</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;1400663&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>template</span>:
+    <span style=color:#f92672>metadata</span>:
+      <span style=color:#f92672>creationTimestamp</span>: <span style=color:#66d9ef>null</span>
+    <span style=color:#f92672>spec</span>:
+      <span style=color:#f92672>containerConcurrency</span>: <span style=color:#ae81ff>0</span>
+      <span style=color:#f92672>containers</span>:
+      - <span style=color:#f92672>env</span>:
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>TARGET</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>Knative</span>
+        <span style=color:#f92672>image</span>: <span style=color:#ae81ff>gcr.oneitfarm.com/knative-samples/helloworld-go</span>
+        <span style=color:#f92672>name</span>: <span style=color:#ae81ff>user-container</span>
+        <span style=color:#f92672>ports</span>:
+        - <span style=color:#f92672>containerPort</span>: <span style=color:#ae81ff>8080</span>
+          <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+        <span style=color:#f92672>readinessProbe</span>:
+          <span style=color:#f92672>successThreshold</span>: <span style=color:#ae81ff>1</span>
+          <span style=color:#f92672>tcpSocket</span>:
+            <span style=color:#f92672>port</span>: <span style=color:#ae81ff>0</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>conditions</span>:
+  - <span style=color:#f92672>lastTransitionTime</span>: <span style=color:#e6db74>&#34;2021-11-12T07:09:12Z&#34;</span>
+    <span style=color:#f92672>status</span>: <span style=color:#e6db74>&#34;True&#34;</span>
+    <span style=color:#f92672>type</span>: <span style=color:#ae81ff>Ready</span>
+  <span style=color:#f92672>latestCreatedRevisionName</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>latestReadyRevisionName</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>1</span>
+</code></pre></div><h4 id=route>route</h4>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Route</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>serving.knative.dev/creator</span>: <span style=color:#ae81ff>minikube-user</span>
+    <span style=color:#f92672>serving.knative.dev/lastModifier</span>: <span style=color:#ae81ff>minikube-user</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:41:02Z&#34;</span>
+  <span style=color:#f92672>finalizers</span>:
+  - <span style=color:#ae81ff>routes.serving.knative.dev</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Service</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;1400934&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>2da2c785-a4ab-498f-b9d8-32b9898d711f</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>traffic</span>:
+  - <span style=color:#f92672>configurationName</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>latestRevision</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>percent</span>: <span style=color:#ae81ff>100</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>address</span>:
+    <span style=color:#f92672>url</span>: <span style=color:#ae81ff>http://hello.default.svc.cluster.local</span>
+  <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>traffic</span>:
+  - <span style=color:#f92672>latestRevision</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>percent</span>: <span style=color:#ae81ff>100</span>
+    <span style=color:#f92672>revisionName</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>url</span>: <span style=color:#ae81ff>http://hello.default.10.103.31.251.nip.io</span>
+</code></pre></div><h4 id=kingress>kingress</h4>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>networking.internal.knative.dev/v1alpha1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Ingress</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>networking.internal.knative.dev/rollout</span>: <span style=color:#e6db74>&#39;{&#34;configurations&#34;:[{&#34;configurationName&#34;:&#34;hello&#34;,&#34;percent&#34;:100,&#34;revisions&#34;:[{&#34;revisionName&#34;:&#34;hello-00001&#34;,&#34;percent&#34;:100}],&#34;stepParams&#34;:{}}]}&#39;</span>
+    <span style=color:#f92672>networking.knative.dev/ingress.class</span>: <span style=color:#ae81ff>kourier.ingress.networking.knative.dev</span>
+    <span style=color:#f92672>serving.knative.dev/creator</span>: <span style=color:#ae81ff>minikube-user</span>
+    <span style=color:#f92672>serving.knative.dev/lastModifier</span>: <span style=color:#ae81ff>minikube-user</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T07:09:12Z&#34;</span>
+  <span style=color:#f92672>finalizers</span>:
+  - <span style=color:#ae81ff>ingresses.networking.internal.knative.dev</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>serving.knative.dev/route</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/routeNamespace</span>: <span style=color:#ae81ff>default</span>
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Route</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>2da2c785-a4ab-498f-b9d8-32b9898d711f</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;1400686&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>b602b482-0d15-46f8-b4de-8016a75d13ce</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>httpOption</span>: <span style=color:#ae81ff>Enabled</span>
+  <span style=color:#f92672>rules</span>:
+  - <span style=color:#f92672>hosts</span>:
+    - <span style=color:#ae81ff>hello.default</span>
+    - <span style=color:#ae81ff>hello.default.svc</span>
+    - <span style=color:#ae81ff>hello.default.svc.cluster.local</span>
+    <span style=color:#f92672>http</span>:
+      <span style=color:#f92672>paths</span>:
+      - <span style=color:#f92672>splits</span>:
+        - <span style=color:#f92672>appendHeaders</span>:
+            <span style=color:#f92672>Knative-Serving-Namespace</span>: <span style=color:#ae81ff>default</span>
+            <span style=color:#f92672>Knative-Serving-Revision</span>: <span style=color:#ae81ff>hello-00001</span>
+          <span style=color:#f92672>percent</span>: <span style=color:#ae81ff>100</span>
+          <span style=color:#f92672>serviceName</span>: <span style=color:#ae81ff>hello-00001</span>
+          <span style=color:#f92672>serviceNamespace</span>: <span style=color:#ae81ff>default</span>
+          <span style=color:#f92672>servicePort</span>: <span style=color:#ae81ff>80</span>
+    <span style=color:#f92672>visibility</span>: <span style=color:#ae81ff>ClusterLocal</span>
+  - <span style=color:#f92672>hosts</span>:
+    - <span style=color:#ae81ff>hello.default.10.103.31.251.nip.io</span>
+    <span style=color:#f92672>http</span>:
+      <span style=color:#f92672>paths</span>:
+      - <span style=color:#f92672>splits</span>:
+        - <span style=color:#f92672>appendHeaders</span>:
+            <span style=color:#f92672>Knative-Serving-Namespace</span>: <span style=color:#ae81ff>default</span>
+            <span style=color:#f92672>Knative-Serving-Revision</span>: <span style=color:#ae81ff>hello-00001</span>
+          <span style=color:#f92672>percent</span>: <span style=color:#ae81ff>100</span>
+          <span style=color:#f92672>serviceName</span>: <span style=color:#ae81ff>hello-00001</span>
+          <span style=color:#f92672>serviceNamespace</span>: <span style=color:#ae81ff>default</span>
+          <span style=color:#f92672>servicePort</span>: <span style=color:#ae81ff>80</span>
+    <span style=color:#f92672>visibility</span>: <span style=color:#ae81ff>ExternalIP</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>conditions</span>:
+  - <span style=color:#f92672>lastTransitionTime</span>: <span style=color:#e6db74>&#34;2021-11-12T07:09:12Z&#34;</span>
+    <span style=color:#f92672>status</span>: <span style=color:#e6db74>&#34;True&#34;</span>
+    <span style=color:#f92672>type</span>: <span style=color:#ae81ff>LoadBalancerReady</span>
+  - <span style=color:#f92672>lastTransitionTime</span>: <span style=color:#e6db74>&#34;2021-11-12T07:09:12Z&#34;</span>
+    <span style=color:#f92672>status</span>: <span style=color:#e6db74>&#34;True&#34;</span>
+    <span style=color:#f92672>type</span>: <span style=color:#ae81ff>NetworkConfigured</span>
+  - <span style=color:#f92672>lastTransitionTime</span>: <span style=color:#e6db74>&#34;2021-11-12T07:09:12Z&#34;</span>
+    <span style=color:#f92672>status</span>: <span style=color:#e6db74>&#34;True&#34;</span>
+    <span style=color:#f92672>type</span>: <span style=color:#ae81ff>Ready</span>
+  <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>privateLoadBalancer</span>:
+    <span style=color:#f92672>ingress</span>:
+    - <span style=color:#f92672>domainInternal</span>: <span style=color:#ae81ff>kourier-internal.kourier-system.svc.cluster.local</span>
+  <span style=color:#f92672>publicLoadBalancer</span>:
+    <span style=color:#f92672>ingress</span>:
+    - <span style=color:#f92672>domainInternal</span>: <span style=color:#ae81ff>kourier.kourier-system.svc.cluster.local</span>
+</code></pre></div><h4 id=revision>revision</h4>
+<p>label指向了configuration和service</p>
+<p>annotions下有各个控制缩放的字段。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Revision</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>serving.knative.dev/routes</span>: <span style=color:#ae81ff>hello</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:41:02Z&#34;</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+    <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+    <span style=color:#f92672>serving.knative.dev/routingState</span>: <span style=color:#ae81ff>active</span>
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Configuration</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;1433082&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>containerConcurrency</span>: <span style=color:#ae81ff>0</span>
+  <span style=color:#f92672>containers</span>:
+  - <span style=color:#f92672>env</span>:
+    - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>TARGET</span>
+      <span style=color:#f92672>value</span>: <span style=color:#ae81ff>Knative</span>
+    <span style=color:#f92672>image</span>: <span style=color:#ae81ff>gcr.oneitfarm.com/knative-samples/helloworld-go</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>user-container</span>
+    <span style=color:#f92672>ports</span>:
+    - <span style=color:#f92672>containerPort</span>: <span style=color:#ae81ff>8080</span>
+      <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+    <span style=color:#f92672>readinessProbe</span>:
+      <span style=color:#f92672>successThreshold</span>: <span style=color:#ae81ff>1</span>
+      <span style=color:#f92672>tcpSocket</span>:
+        <span style=color:#f92672>port</span>: <span style=color:#ae81ff>0</span>
+    <span style=color:#f92672>resources</span>: {}
+  <span style=color:#f92672>enableServiceLinks</span>: <span style=color:#66d9ef>false</span>
+  <span style=color:#f92672>timeoutSeconds</span>: <span style=color:#ae81ff>300</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>actualReplicas</span>: <span style=color:#ae81ff>0</span>
+  <span style=color:#f92672>containerStatuses</span>:
+  - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>user-container</span>
+  <span style=color:#f92672>desiredReplicas</span>: <span style=color:#ae81ff>0</span>
+  <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>1</span>
+</code></pre></div><h4 id=deployment>deployment</h4>
+<p>label指向了configuration和revision和service，注意还注入了proxy容器。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>apps/v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Deployment</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>deployment.kubernetes.io/revision</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:52:34Z&#34;</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>12</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>app</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+    <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+    <span style=color:#f92672>serving.knative.dev/revision</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001-deployment</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Revision</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;2999968&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>06001aab-6d40-4916-be05-0f2f8e6d392b</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>progressDeadlineSeconds</span>: <span style=color:#ae81ff>600</span>
+  <span style=color:#f92672>replicas</span>: <span style=color:#ae81ff>0</span>
+  <span style=color:#f92672>revisionHistoryLimit</span>: <span style=color:#ae81ff>10</span>
+  <span style=color:#f92672>selector</span>:
+    <span style=color:#f92672>matchLabels</span>:
+      <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+  <span style=color:#f92672>strategy</span>:
+    <span style=color:#f92672>rollingUpdate</span>:
+      <span style=color:#f92672>maxSurge</span>: <span style=color:#ae81ff>25</span><span style=color:#ae81ff>%</span>
+      <span style=color:#f92672>maxUnavailable</span>: <span style=color:#ae81ff>0</span>
+    <span style=color:#f92672>type</span>: <span style=color:#ae81ff>RollingUpdate</span>
+  <span style=color:#f92672>template</span>:
+    <span style=color:#f92672>metadata</span>:
+      <span style=color:#f92672>labels</span>:
+        <span style=color:#f92672>app</span>: <span style=color:#ae81ff>hello-00001</span>
+        <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+        <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+        <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+        <span style=color:#f92672>serving.knative.dev/revision</span>: <span style=color:#ae81ff>hello-00001</span>
+        <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+        <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+        <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+    <span style=color:#f92672>spec</span>:
+      <span style=color:#f92672>containers</span>:
+      - <span style=color:#f92672>env</span>:
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>TARGET</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>Knative</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>PORT</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;8080&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>K_REVISION</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>hello-00001</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>K_CONFIGURATION</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>hello</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>K_SERVICE</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>hello</span>
+        <span style=color:#f92672>image</span>: <span style=color:#ae81ff>gcr.oneitfarm.com/knative-samples/helloworld-go</span>
+        <span style=color:#f92672>imagePullPolicy</span>: <span style=color:#ae81ff>Always</span>
+        <span style=color:#f92672>lifecycle</span>:
+          <span style=color:#f92672>preStop</span>:
+            <span style=color:#f92672>httpGet</span>:
+              <span style=color:#f92672>path</span>: <span style=color:#ae81ff>/wait-for-drain</span>
+              <span style=color:#f92672>port</span>: <span style=color:#ae81ff>8022</span>
+              <span style=color:#f92672>scheme</span>: <span style=color:#ae81ff>HTTP</span>
+        <span style=color:#f92672>name</span>: <span style=color:#ae81ff>user-container</span>
+        <span style=color:#f92672>ports</span>:
+        - <span style=color:#f92672>containerPort</span>: <span style=color:#ae81ff>8080</span>
+          <span style=color:#f92672>name</span>: <span style=color:#ae81ff>user-port</span>
+          <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+        <span style=color:#f92672>resources</span>: {}
+        <span style=color:#f92672>terminationMessagePath</span>: <span style=color:#ae81ff>/dev/termination-log</span>
+        <span style=color:#f92672>terminationMessagePolicy</span>: <span style=color:#ae81ff>FallbackToLogsOnError</span>
+      - <span style=color:#f92672>env</span>:
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_NAMESPACE</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>default</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_SERVICE</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>hello</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_CONFIGURATION</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>hello</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_REVISION</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>hello-00001</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>QUEUE_SERVING_PORT</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;8012&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>CONTAINER_CONCURRENCY</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;0&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>REVISION_TIMEOUT_SECONDS</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;300&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_POD</span>
+          <span style=color:#f92672>valueFrom</span>:
+            <span style=color:#f92672>fieldRef</span>:
+              <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+              <span style=color:#f92672>fieldPath</span>: <span style=color:#ae81ff>metadata.name</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_POD_IP</span>
+          <span style=color:#f92672>valueFrom</span>:
+            <span style=color:#f92672>fieldRef</span>:
+              <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+              <span style=color:#f92672>fieldPath</span>: <span style=color:#ae81ff>status.podIP</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_LOGGING_CONFIG</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_LOGGING_LEVEL</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_REQUEST_LOG_TEMPLATE</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#39;{&#34;httpRequest&#34;: {&#34;requestMethod&#34;: &#34;{{.Request.Method}}&#34;, &#34;requestUrl&#34;:
+</span><span style=color:#e6db74>            &#34;{{js .Request.RequestURI}}&#34;, &#34;requestSize&#34;: &#34;{{.Request.ContentLength}}&#34;,
+</span><span style=color:#e6db74>            &#34;status&#34;: {{.Response.Code}}, &#34;responseSize&#34;: &#34;{{.Response.Size}}&#34;, &#34;userAgent&#34;:
+</span><span style=color:#e6db74>            &#34;{{js .Request.UserAgent}}&#34;, &#34;remoteIp&#34;: &#34;{{js .Request.RemoteAddr}}&#34;,
+</span><span style=color:#e6db74>            &#34;serverIp&#34;: &#34;{{.Revision.PodIP}}&#34;, &#34;referer&#34;: &#34;{{js .Request.Referer}}&#34;,
+</span><span style=color:#e6db74>            &#34;latency&#34;: &#34;{{.Response.Latency}}s&#34;, &#34;protocol&#34;: &#34;{{.Request.Proto}}&#34;},
+</span><span style=color:#e6db74>            &#34;traceId&#34;: &#34;{{index .Request.Header &#34;X-B3-Traceid&#34;}}&#34;}&#39;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_ENABLE_REQUEST_LOG</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;false&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_REQUEST_METRICS_BACKEND</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>prometheus</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>TRACING_CONFIG_BACKEND</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>none</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>TRACING_CONFIG_ZIPKIN_ENDPOINT</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>TRACING_CONFIG_DEBUG</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;false&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>TRACING_CONFIG_SAMPLE_RATE</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;0.1&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>USER_PORT</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;8080&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SYSTEM_NAMESPACE</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>knative-serving</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>METRICS_DOMAIN</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>knative.dev/internal/serving</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_READINESS_PROBE</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#39;{&#34;tcpSocket&#34;:{&#34;port&#34;:8080,&#34;host&#34;:&#34;127.0.0.1&#34;},&#34;successThreshold&#34;:1}&#39;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>ENABLE_PROFILING</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;false&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>SERVING_ENABLE_PROBE_REQUEST_LOG</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;false&#34;</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>METRICS_COLLECTOR_ADDRESS</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>CONCURRENCY_STATE_ENDPOINT</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>CONCURRENCY_STATE_TOKEN_PATH</span>
+          <span style=color:#f92672>value</span>: <span style=color:#ae81ff>/var/run/secrets/tokens/state-token</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>HOST_IP</span>
+          <span style=color:#f92672>valueFrom</span>:
+            <span style=color:#f92672>fieldRef</span>:
+              <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+              <span style=color:#f92672>fieldPath</span>: <span style=color:#ae81ff>status.hostIP</span>
+        - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>ENABLE_HTTP2_AUTO_DETECTION</span>
+          <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;false&#34;</span>
+        <span style=color:#f92672>image</span>: <span style=color:#ae81ff>gcr.oneitfarm.com/knative-releases/knative.dev/serving/cmd/queue@sha256:5e63873df82ae864bfd5267a0ec7c3ef87c38a04c5ec894100fc4d5c48720569</span>
+        <span style=color:#f92672>imagePullPolicy</span>: <span style=color:#ae81ff>IfNotPresent</span>
+        <span style=color:#f92672>name</span>: <span style=color:#ae81ff>queue-proxy</span>
+        <span style=color:#f92672>ports</span>:
+        - <span style=color:#f92672>containerPort</span>: <span style=color:#ae81ff>8022</span>
+          <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http-queueadm</span>
+          <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+        - <span style=color:#f92672>containerPort</span>: <span style=color:#ae81ff>9090</span>
+          <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http-autometric</span>
+          <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+        - <span style=color:#f92672>containerPort</span>: <span style=color:#ae81ff>9091</span>
+          <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http-usermetric</span>
+          <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+        - <span style=color:#f92672>containerPort</span>: <span style=color:#ae81ff>8012</span>
+          <span style=color:#f92672>name</span>: <span style=color:#ae81ff>queue-port</span>
+          <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+        <span style=color:#f92672>readinessProbe</span>:
+          <span style=color:#f92672>failureThreshold</span>: <span style=color:#ae81ff>3</span>
+          <span style=color:#f92672>httpGet</span>:
+            <span style=color:#f92672>httpHeaders</span>:
+            - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>K-Network-Probe</span>
+              <span style=color:#f92672>value</span>: <span style=color:#ae81ff>queue</span>
+            <span style=color:#f92672>path</span>: <span style=color:#ae81ff>/</span>
+            <span style=color:#f92672>port</span>: <span style=color:#ae81ff>8012</span>
+            <span style=color:#f92672>scheme</span>: <span style=color:#ae81ff>HTTP</span>
+          <span style=color:#f92672>periodSeconds</span>: <span style=color:#ae81ff>1</span>
+          <span style=color:#f92672>successThreshold</span>: <span style=color:#ae81ff>1</span>
+          <span style=color:#f92672>timeoutSeconds</span>: <span style=color:#ae81ff>1</span>
+        <span style=color:#f92672>resources</span>:
+          <span style=color:#f92672>requests</span>:
+            <span style=color:#f92672>cpu</span>: <span style=color:#ae81ff>25m</span>
+        <span style=color:#f92672>securityContext</span>:
+          <span style=color:#f92672>allowPrivilegeEscalation</span>: <span style=color:#66d9ef>false</span>
+          <span style=color:#f92672>capabilities</span>:
+            <span style=color:#f92672>drop</span>:
+            - <span style=color:#ae81ff>all</span>
+          <span style=color:#f92672>readOnlyRootFilesystem</span>: <span style=color:#66d9ef>true</span>
+          <span style=color:#f92672>runAsNonRoot</span>: <span style=color:#66d9ef>true</span>
+        <span style=color:#f92672>terminationMessagePath</span>: <span style=color:#ae81ff>/dev/termination-log</span>
+        <span style=color:#f92672>terminationMessagePolicy</span>: <span style=color:#ae81ff>File</span>
+      <span style=color:#f92672>dnsPolicy</span>: <span style=color:#ae81ff>ClusterFirst</span>
+      <span style=color:#f92672>enableServiceLinks</span>: <span style=color:#66d9ef>false</span>
+      <span style=color:#f92672>restartPolicy</span>: <span style=color:#ae81ff>Always</span>
+      <span style=color:#f92672>schedulerName</span>: <span style=color:#ae81ff>default-scheduler</span>
+      <span style=color:#f92672>securityContext</span>: {}
+      <span style=color:#f92672>terminationGracePeriodSeconds</span>: <span style=color:#ae81ff>300</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>12</span>
+</code></pre></div><h4 id=imagecache>imagecache</h4>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>caching.internal.knative.dev/v1alpha1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Image</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>serving.knative.dev/creator</span>: <span style=color:#ae81ff>minikube-user</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:53:11Z&#34;</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>app</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+    <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+    <span style=color:#f92672>serving.knative.dev/revision</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001-cache-user-container</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Revision</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;1394796&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>0eb86961-74d2-4a23-bc21-24da31526b26</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>image</span>: <span style=color:#e6db74>&#34;&#34;</span>
+</code></pre></div><h4 id=kpa>KPA</h4>
+<p>label指向了configuration、revision、service。scaleTargetRef指向了需要被缩放的目标deployment。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>autoscaling.internal.knative.dev/v1alpha1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>PodAutoscaler</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>autoscaling.knative.dev/class</span>: <span style=color:#ae81ff>kpa.autoscaling.knative.dev</span>
+    <span style=color:#f92672>autoscaling.knative.dev/metric</span>: <span style=color:#ae81ff>concurrency</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:59:30Z&#34;</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>6</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>app</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+    <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+    <span style=color:#f92672>serving.knative.dev/revision</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>serving.knative.dev/v1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Revision</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;2999966&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>a630c17f-600f-44a3-ab44-f6e4213ac229</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>protocolType</span>: <span style=color:#ae81ff>http1</span>
+  <span style=color:#f92672>reachability</span>: <span style=color:#ae81ff>Reachable</span>
+  <span style=color:#f92672>scaleTargetRef</span>:
+    <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>apps/v1</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Deployment</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001-deployment</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>actualScale</span>: <span style=color:#ae81ff>0</span>
+  <span style=color:#f92672>desiredScale</span>: <span style=color:#ae81ff>0</span>
+  <span style=color:#f92672>metricsServiceName</span>: <span style=color:#ae81ff>hello-00001-private</span>
+  <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>6</span>
+  <span style=color:#f92672>serviceName</span>: <span style=color:#ae81ff>hello-00001</span>
+</code></pre></div><h4 id=sks>SKS</h4>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+<span style=color:#f92672>items</span>:
+- <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>networking.internal.knative.dev/v1alpha1</span>
+  <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ServerlessService</span>
+  <span style=color:#f92672>metadata</span>:
+    <span style=color:#f92672>annotations</span>:
+      <span style=color:#f92672>autoscaling.knative.dev/class</span>: <span style=color:#ae81ff>kpa.autoscaling.knative.dev</span>
+      <span style=color:#f92672>serving.knative.dev/creator</span>: <span style=color:#ae81ff>minikube-user</span>
+    <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:59:30Z&#34;</span>
+    <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>13</span>
+    <span style=color:#f92672>labels</span>:
+      <span style=color:#f92672>app</span>: <span style=color:#ae81ff>hello-00001</span>
+      <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+      <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+      <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+      <span style=color:#f92672>serving.knative.dev/revision</span>: <span style=color:#ae81ff>hello-00001</span>
+      <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+      <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+      <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+    <span style=color:#f92672>ownerReferences</span>:
+    - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>autoscaling.internal.knative.dev/v1alpha1</span>
+      <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+      <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+      <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>PodAutoscaler</span>
+      <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+      <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>a630c17f-600f-44a3-ab44-f6e4213ac229</span>
+    <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;2999964&#34;</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>cb0495e0-f248-460f-9e5c-ecdd5af12b24</span>
+  <span style=color:#f92672>spec</span>:
+    <span style=color:#f92672>mode</span>: <span style=color:#ae81ff>Proxy</span>
+    <span style=color:#f92672>numActivators</span>: <span style=color:#ae81ff>2</span>
+    <span style=color:#f92672>objectRef</span>:
+      <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>apps/v1</span>
+      <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Deployment</span>
+      <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001-deployment</span>
+    <span style=color:#f92672>protocolType</span>: <span style=color:#ae81ff>http1</span>
+  <span style=color:#f92672>status</span>:
+    <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>7</span>
+    <span style=color:#f92672>privateServiceName</span>: <span style=color:#ae81ff>hello-00001-private</span>
+    <span style=color:#f92672>serviceName</span>: <span style=color:#ae81ff>hello-00001</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>List</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;&#34;</span>
+  <span style=color:#f92672>selfLink</span>: <span style=color:#e6db74>&#34;&#34;</span>
+</code></pre></div><h4 id=service-public>Service public</h4>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Service</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>autoscaling.knative.dev/class</span>: <span style=color:#ae81ff>kpa.autoscaling.knative.dev</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T06:59:31Z&#34;</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>app</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>networking.internal.knative.dev/serverlessservice</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>networking.internal.knative.dev/serviceType</span>: <span style=color:#ae81ff>Public</span>
+    <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+    <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+    <span style=color:#f92672>serving.knative.dev/revision</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>networking.internal.knative.dev/v1alpha1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ServerlessService</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>cb0495e0-f248-460f-9e5c-ecdd5af12b24</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;1397165&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>a1117e40-8a81-4700-b13e-53cd52bf55d5</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>clusterIP</span>: <span style=color:#ae81ff>10.109.208.245</span>
+  <span style=color:#f92672>clusterIPs</span>:
+  - <span style=color:#ae81ff>10.109.208.245</span>
+  <span style=color:#f92672>ipFamilies</span>:
+  - <span style=color:#ae81ff>IPv4</span>
+  <span style=color:#f92672>ipFamilyPolicy</span>: <span style=color:#ae81ff>SingleStack</span>
+  <span style=color:#f92672>ports</span>:
+  - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http</span>
+    <span style=color:#f92672>port</span>: <span style=color:#ae81ff>80</span>
+    <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+    <span style=color:#f92672>targetPort</span>: <span style=color:#ae81ff>8012</span>
+  <span style=color:#f92672>sessionAffinity</span>: <span style=color:#ae81ff>None</span>
+  <span style=color:#f92672>type</span>: <span style=color:#ae81ff>ClusterIP</span>
+</code></pre></div><h4 id=metrics>metrics</h4>
+<p>metrics是定义这个服务流量指标获取的一些参数。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>autoscaling.internal.knative.dev/v1alpha1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Metric</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>autoscaling.knative.dev/class</span>: <span style=color:#ae81ff>kpa.autoscaling.knative.dev</span>
+    <span style=color:#f92672>autoscaling.knative.dev/metric</span>: <span style=color:#ae81ff>concurrency</span>
+  <span style=color:#f92672>creationTimestamp</span>: <span style=color:#e6db74>&#34;2021-11-12T07:08:59Z&#34;</span>
+  <span style=color:#f92672>generation</span>: <span style=color:#ae81ff>1</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>app</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/configuration</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/configurationGeneration</span>: <span style=color:#e6db74>&#34;1&#34;</span>
+    <span style=color:#f92672>serving.knative.dev/configurationUID</span>: <span style=color:#ae81ff>5150d10a-8d42-464b-95be-2f38b110e863</span>
+    <span style=color:#f92672>serving.knative.dev/revision</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>serving.knative.dev/revisionUID</span>: <span style=color:#ae81ff>357a23d7-24e2-4bb3-8af6-40e23122548f</span>
+    <span style=color:#f92672>serving.knative.dev/service</span>: <span style=color:#ae81ff>hello</span>
+    <span style=color:#f92672>serving.knative.dev/serviceUID</span>: <span style=color:#ae81ff>d97bd364-1b92-4682-b568-cffd4b85054f</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>default</span>
+  <span style=color:#f92672>ownerReferences</span>:
+  - <span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>autoscaling.internal.knative.dev/v1alpha1</span>
+    <span style=color:#f92672>blockOwnerDeletion</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>controller</span>: <span style=color:#66d9ef>true</span>
+    <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>PodAutoscaler</span>
+    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>hello-00001</span>
+    <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>a630c17f-600f-44a3-ab44-f6e4213ac229</span>
+  <span style=color:#f92672>resourceVersion</span>: <span style=color:#e6db74>&#34;3138042&#34;</span>
+  <span style=color:#f92672>uid</span>: <span style=color:#ae81ff>7d67484b-0d49-4c9e-83e3-8c967889a1e6</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>panicWindow</span>: <span style=color:#ae81ff>6000000000</span>
+  <span style=color:#f92672>scrapeTarget</span>: <span style=color:#ae81ff>hello-00001-private</span>
+  <span style=color:#f92672>stableWindow</span>: <span style=color:#ae81ff>60000000000</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>conditions</span>:
+  - <span style=color:#f92672>lastTransitionTime</span>: <span style=color:#e6db74>&#34;2021-11-15T13:11:17Z&#34;</span>
+    <span style=color:#f92672>status</span>: <span style=color:#e6db74>&#34;True&#34;</span>
+    <span style=color:#f92672>type</span>: <span style=color:#ae81ff>Ready</span>
+  <span style=color:#f92672>observedGeneration</span>: <span style=color:#ae81ff>1</span>
+</code></pre></div><p>参考：</p>
+<p>流量机制探索https://juejin.cn/post/6844904084005191693</p>
+<p>如何基于 Knative 开发 自定义controllerhttps://mp.weixin.qq.com/s/L2jt2m1SUjXTD2kuBqB4Ow</p>
+<p>【超详细】深入探究 Knative 扩缩容的奥秘https://mp.weixin.qq.com/s/O9LXnIQknW-vH_mwrkQltA</p>
+<p>【源码解析】Knative Serving核心逻辑实现（上篇）https://www.mdnice.com/writing/bb331f71193c4c28903b63209aeeb14b</p>
+<p>Knative 全链路流量机制探索与揭秘https://www.infoq.cn/article/niwwtl3apwoz7uigdmsb</p>
+<div class="text-muted mt-5 pt-3 border-top">
+</div>
+</div>
+</main>
+</div>
+</div>
+<footer class="bg-dark py-5 row d-print-none">
+<div class="container-fluid mx-sm-5">
+<div class=row>
+<div class="col-6 col-sm-4 text-xs-center order-sm-2">
+</div>
+<div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+</div>
+<div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+</div>
+</div>
+</div>
+</footer>
+</div>
+<script src=https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js integrity=sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN crossorigin=anonymous></script>
+<script src=https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js integrity=sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF crossorigin=anonymous></script>
+<script src=/js/main.min.f8dc12214b1b557b8ee4603ff35df42ebeef990cf05109190b758b04eac03307.js integrity="sha256-+NwSIUsbVXuO5GA/8130Lr7vmQzwUQkZC3WLBOrAMwc=" crossorigin=anonymous></script>
+</body>
+</html>
