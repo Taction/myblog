@@ -52,19 +52,28 @@ git rebase --signoff --interactive <commit hash>
 
 保存文本，你应该就会发现控制台输出`Successfully rebased and updated refs/heads/<your branch name>.`
 
+**注意**：如果你在rebase的过程中遇到问题，你需要解决冲突并执行
+
+```
+git commit --amend --no-edit --signoff
+git rebase --continue
+```
+
+
+
 这时你的分支就会只剩下你自己的提交，且都已经被签名。假设你的分支要被合并到master上且本地master分支已经保持最新，你可以根据需求和你自己的喜好选择执行以下两个命令的任意一条
 
 ```
 git rebase master
 //or 
-git merge master --signoff
+git merge --signoff master
 ```
 
-如果有冲突就根据提示解决冲突。(如果有冲突解决完成后需要根据你上一次执行方式选择`git rebase --continue`或者`git merge --continue`来继续进程）
+如果有冲突就根据提示解决冲突。如果有冲突解决完成后需要根据你上一次执行方式选择`git rebase --continue`或者`git merge --continue`来继续进程）,如果你是用merge遇到了冲突，你需要执行`git commit --amend --no-edit --signoff`补提交签名。
 
 最后执行：
 
 ```git push --force-with-lease origin <your branch name>```
 
-然后你的所有提交都是已经补全DCO的状态。
+查看你的所有提交,此时应该都已是补全DCO的状态了。
 
