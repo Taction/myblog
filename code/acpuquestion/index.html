@@ -45,8 +45,8 @@ pprof抓取CPU占用 sidecar是有pprof端口的，而且在CPU占用过高的�
 问题的主要难点在于pprof抓到的函数占用没有业务代码，完全是go运行时。顿时心里破大防了，不要慌问题不大，反正都这样了，慌也没有用。
 接下来就只能面向谷歌先看下有没有类似的问题，再看下这些函数具体作用是什么，什么情况下go runtime findrunnable（schedule）会占用CPU过高。经过浏览器不懈的努力，找到了一些信息golang runtime.findrunnable epoll_wait lock 占用CPU 过多排查、slow down 10+ times, what happen to runtime.findrunnable?，甚至第一个问题的CPU占用跟我们的几乎一模一样，但是都是只提出了问题，没有最终的解答。最终在go issue里找到一个看起来有点关系，也不能说是完全没用的信息：
 Update: most of the scheduler activity is caused by blocking network reads. The call chain goes across two call stacks, which makes it a little tough to track down through stack traces alone, but here it is: net.(*netFD).Read net.(*pollDesc).wait net.(*pollDesc).waitRead net.runtime_pollWait runtime.netpollblock runtime.gopark runtime.mcall(park_m) runtime.">
-<link rel=preload href=/scss/main.min.be9fabc31fb114435a29bc299b30af9345624efc1a7040d5c14eddb3645b5315.css as=style>
-<link href=/scss/main.min.be9fabc31fb114435a29bc299b30af9345624efc1a7040d5c14eddb3645b5315.css rel=stylesheet integrity>
+<link rel=preload href=/scss/main.min.aca7ac063ce8252365df7837e202ab281d85d2c577d6c50c19621ab2d131d91c.css as=style>
+<link href=/scss/main.min.aca7ac063ce8252365df7837e202ab281d85d2c577d6c50c19621ab2d131d91c.css rel=stylesheet integrity>
 <script src=https://code.jquery.com/jquery-3.5.1.min.js integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin=anonymous></script>
 </head>
 <body class=td-page>
