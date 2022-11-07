@@ -1,6 +1,6 @@
 ---
 type: docs
-title: "code"
+title: "wasmcloud"
 weight: 10
 ---
 
