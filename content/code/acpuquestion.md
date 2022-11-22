@@ -1,6 +1,6 @@
 ---
 title: "一次关于sidecar CPU使用率异常偶发升高问题排查"
-linkTitle: "sidecar cup"
+linkTitle: "sidecar cpu"
 type: docs
 date: 2021-11-20T15:58:16+08:00
 draft: false
