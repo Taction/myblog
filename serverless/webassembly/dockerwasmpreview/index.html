@@ -17,7 +17,7 @@
 <meta name=description content><meta property="og:title" content="运行docker wasm preview 失败教程">
 <meta property="og:description" content="背景 docker宣布支持wasm，并且在wasm day上做了演讲。看到这个消息的时候初步跑了一下官方教程，成功的失败了，止步在containerd-shim-wasmedge-v1没有找到的错误。最近相关的消息多了起来，于是就心血来潮打算抽一些时间跑一下，提供一个趟坑教程方便想运行一下的小伙伴。
 先说下最终的结果当然是失败的，本文记述了在这个过程中遇到的问题以及尝试的方案。最终本次尝试停止在找到一个能运行的docker版本。
-按照官方文档安装基础组件 安装 docker preview和WasmEdge 首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux
+按照官方文档安装基础组件 安装 docker preview和WasmEdge 首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux下的安装为例，其他类型的可以在官方文档处找到下载链接。
 如果你已经安装了docker，你应该先卸载旧的版本。可以通过官方教程或者以下命令卸载：
 sudo apt-get remove docker docker-engine docker.io containerd runc # if desktop sudo apt remove docker-desktop rm -r $HOME/.docker/desktop sudo rm /usr/local/bin/com.docker.cli sudo apt purge docker-desktop 接下来开始安装流程。
 PS:对于非Gnome Desktop环境，必须安装gnome-terminal。
@@ -32,7 +32,7 @@ docker run -dp 8080:8080 \ --name=wasm-example \ --runtime=io.">
 <meta itemprop=name content="运行docker wasm preview 失败教程">
 <meta itemprop=description content="背景 docker宣布支持wasm，并且在wasm day上做了演讲。看到这个消息的时候初步跑了一下官方教程，成功的失败了，止步在containerd-shim-wasmedge-v1没有找到的错误。最近相关的消息多了起来，于是就心血来潮打算抽一些时间跑一下，提供一个趟坑教程方便想运行一下的小伙伴。
 先说下最终的结果当然是失败的，本文记述了在这个过程中遇到的问题以及尝试的方案。最终本次尝试停止在找到一个能运行的docker版本。
-按照官方文档安装基础组件 安装 docker preview和WasmEdge 首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux
+按照官方文档安装基础组件 安装 docker preview和WasmEdge 首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux下的安装为例，其他类型的可以在官方文档处找到下载链接。
 如果你已经安装了docker，你应该先卸载旧的版本。可以通过官方教程或者以下命令卸载：
 sudo apt-get remove docker docker-engine docker.io containerd runc # if desktop sudo apt remove docker-desktop rm -r $HOME/.docker/desktop sudo rm /usr/local/bin/com.docker.cli sudo apt purge docker-desktop 接下来开始安装流程。
 PS:对于非Gnome Desktop环境，必须安装gnome-terminal。
@@ -41,12 +41,12 @@ wget https://www.docker.com/download/wasm-preview/linuxamd64deb mv linuxamd64deb
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- -e all -p /usr/local 对于官方文档来说基本教程就是这些，接下来你可以运行以下命令来运行wasm程序。但是很显然，如果能运行成功的话，我就不会写这篇文档了。
 docker run -dp 8080:8080 \ --name=wasm-example \ --runtime=io."><meta itemprop=datePublished content="2022-11-28T19:02:27+08:00">
 <meta itemprop=dateModified content="2022-11-28T19:02:27+08:00">
-<meta itemprop=wordCount content="511">
+<meta itemprop=wordCount content="513">
 <meta itemprop=keywords content><meta name=twitter:card content="summary">
 <meta name=twitter:title content="运行docker wasm preview 失败教程">
 <meta name=twitter:description content="背景 docker宣布支持wasm，并且在wasm day上做了演讲。看到这个消息的时候初步跑了一下官方教程，成功的失败了，止步在containerd-shim-wasmedge-v1没有找到的错误。最近相关的消息多了起来，于是就心血来潮打算抽一些时间跑一下，提供一个趟坑教程方便想运行一下的小伙伴。
 先说下最终的结果当然是失败的，本文记述了在这个过程中遇到的问题以及尝试的方案。最终本次尝试停止在找到一个能运行的docker版本。
-按照官方文档安装基础组件 安装 docker preview和WasmEdge 首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux
+按照官方文档安装基础组件 安装 docker preview和WasmEdge 首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux下的安装为例，其他类型的可以在官方文档处找到下载链接。
 如果你已经安装了docker，你应该先卸载旧的版本。可以通过官方教程或者以下命令卸载：
 sudo apt-get remove docker docker-engine docker.io containerd runc # if desktop sudo apt remove docker-desktop rm -r $HOME/.docker/desktop sudo rm /usr/local/bin/com.docker.cli sudo apt purge docker-desktop 接下来开始安装流程。
 PS:对于非Gnome Desktop环境，必须安装gnome-terminal。
@@ -195,7 +195,7 @@ docker run -dp 8080:8080 \ --name=wasm-example \ --runtime=io.">
 <p>先说下最终的结果当然是失败的，本文记述了在这个过程中遇到的问题以及尝试的方案。最终本次尝试停止在找到一个能运行的docker版本。</p>
 <h3 id=按照官方文档安装基础组件>按照官方文档安装基础组件</h3>
 <h4 id=安装-docker-preview和wasmedge>安装 docker preview和WasmEdge</h4>
-<p>首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux</p>
+<p>首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux下的安装为例，其他类型的可以在官方文档处找到下载链接。</p>
 <p>如果你已经安装了docker，你应该先卸载旧的版本。可以通过官方教程或者以下命令卸载：</p>
 <div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>sudo apt-get remove docker docker-engine docker.io containerd runc
 <span style=color:#75715e># if desktop</span>
@@ -296,13 +296,13 @@ vim pkg/system/lcow_unsupported.go
 docker context create wasm --docker <span style=color:#e6db74>&#34;host=unix:///tmp/docker.sock&#34;</span>
 <span style=color:#75715e># 注意下面的指令可以不运行只要在每次的docker命令后面加上--context wasm就可以</span>
 docker context use wasm
-</code></pre></div><p>使用官方版本改代码的方式遇到了以下错误，查看dockerd日志是代码panic了，所以肯定不是这个分支的代码。</p>
+</code></pre></div><p>使用官方版本改代码的方式，在运行上面启动一个wasm docker的时候遇到了以下错误，查看dockerd日志是代码panic了，所以肯定不是这个分支的代码。</p>
 <pre tabindex=0><code>Unable to find image 'michaelirwin244/wasm-example:latest' locally
 latest: Pulling from michaelirwin244/wasm-example
 e049f00c5289: Pull complete
 docker: unexpected EOF.
 See 'docker run --help'.
-</code></pre><p>由于wasm day的文档是指向<a href=https://github.com/rumpl/moby>这个项目</a>自己构建二进制的，让我们看下这个项目的哪个分支可能是包含了这部分功能。首先可以看到<code>wasmedge</code>分支在被删除之前是在尝试合并入<code>c8d</code>分支。那么就remote添加这个源，并且把分支切到这个分支上，构建并运行。</p>
+</code></pre><p>由于wasm day的文档是指向<a href=https://github.com/rumpl/moby>这个项目</a>自己构建二进制的，而且目标分支已经删除了，让我们看下这个项目的哪个分支可能是包含了这部分功能。首先可以看到<code>wasmedge</code>分支在被删除之前是在尝试合并入<code>c8d</code>分支，那么这个分支很有可能就是目前此功能的开发分支。那么就remote添加这个源，并且把分支切到这个分支上，构建并运行。</p>
 <p>这个时候我就遇到本次试验之旅的大boss，最后一个问题的报错如下：</p>
 <pre tabindex=0><code>docker: Error response from daemon: failed to create shim task: OCI runtime create failed: unable to retrieve OCI runtime error (open /run/containerd/io.containerd.runtime.v2.task/moby/bec2a500d29e50539dddc3050ac823575053f70e75f8e0be814eb7cb84a345d1/log.json: no such file or directory): /usr/local/bin/containerd-shim-wasmedge-v1 did not terminate successfully: exit status 1: unknown.
 </code></pre><p>对应的dockerd报错为</p>
@@ -316,10 +316,10 @@ ERRO[2022-11-29T16:41:45.137885178+08:00] stream copy error: reading from a clos
 DEBU[2022-11-29T16:41:45.168345866+08:00] Revoking external connectivity on endpoint ecstatic_varahamihira (6b6101c5cf94aa2040b69f4e02dbfec84c98689d63a7473515f3d5597e9621a6)
 DEBU[2022-11-29T16:41:45.169235448+08:00] /usr/sbin/iptables, [--wait -t nat -C DOCKER -p tcp -d 0/0 --dport 8080 -j DNAT --to-destination 172.17.0.2:8080 ! -i docker0]
 DEBU[2022-11-29T16:41:45.171210165+08:00] /usr/sbin/iptables, [--wait -t nat -D DOCKER -p tcp -d 0/0 --dport 8080 -j DNAT --to-destination 172.17.0.2:8080 ! -i docker0]
-</code></pre><p>这里有几种可能性，一个是我用的docker版本呢还是不对，因为毕竟原来的分支被删除了，这个分支的代码可能仍然是有问题的。另一个是dockerd、containerd、containerd-shim-wasmedge-v1等组件之间的版本存在不兼容情况。</p>
+</code></pre><p>这里有几种可能性，一个是我用的docker版本呢还是不对，因为毕竟原来的分支被删除了，这个分支的代码可能仍然是有问题的。另一个是dockerd、containerd、containerd-shim-wasmedge-v1等组件之间的版本存在不兼容情况（因为我从官方的release分支切换到了一个开发者分支）。</p>
 <p>首先针对第一中情况，继续看分支，开会做案例的时间跟这两个分支比较接近 backup-c8d-2022-10-21、backup-c8d-2022-11-07，所以依次尝试了下，不行。</p>
 <p>然后看到官方修改oscheck的<a href=https://github.com/moby/moby/pull/44181/files>代码pr</a>刚好就是他提交的，在remove-os-check分支上，尝试了下这个分支代码，依然不行。</p>
-<p>好了本次的踩坑之旅到此就结束了。</p>
+<p>好了本次的踩坑之旅到此就结束了，如果想要继续深入尝试的话应该需要对这些组件有更进一步的了解。而且在官方issue中也有说明，这个功能目前还是试验性质的，没有production ready，还有很多功能要做。所以还是等官方这个功能稳定之后吧。</p>
 <p>附一张架构截图，docker engine会将启动信息下发到containerd，containerd下发到containerd-shim，containerd-shim发送到对应的运行时，在本例中就是wasmedge，然后wasmedge运行对应的wasm程序。</p>
 <p><img src=https://www.docker.com/wp-content/uploads/2022/10/docker-containerd-wasm-diagram.png.webp alt=docker-containerd-wasm-diagram.png></p>
 <p>于2022年11月19日</p>
