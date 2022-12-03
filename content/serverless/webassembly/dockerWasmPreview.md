@@ -230,7 +230,11 @@ DEBU[2022-11-29T16:41:45.171210165+08:00] /usr/sbin/iptables, [--wait -t nat -D 
 
 然后看到官方修改oscheck的[代码pr](https://github.com/moby/moby/pull/44181/files)刚好就是他提交的，在remove-os-check分支上，尝试了下这个分支代码，依然不行。
 
-好了本次的踩坑之旅到此就结束了，再试就不礼貌了
+好了本次的踩坑之旅到此就结束了。
+
+附一张架构截图，docker engine会将启动信息下发到containerd，containerd下发到containerd-shim，containerd-shim发送到对应的运行时，在本例中就是wasmedge，然后wasmedge运行对应的wasm程序。
+
+![docker-containerd-wasm-diagram.png](https://www.docker.com/wp-content/uploads/2022/10/docker-containerd-wasm-diagram.png.webp)
 
 于2022年11月19日
 

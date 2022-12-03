@@ -1,7 +1,7 @@
 ---
 type: docs
 title: "使用Docker工具在WasmEdge中管理WebAssembly应用程序"
-linkTitle: "docker+wasm"
+linkTitle: "using docker manage wasm【译】"
 date: 2021-10-26T16:19:30+08:00
 weight: 200
 draft: false
