@@ -41,7 +41,7 @@ wget https://www.docker.com/download/wasm-preview/linuxamd64deb mv linuxamd64deb
 curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- -e all -p /usr/local 对于官方文档来说基本教程就是这些，接下来你可以运行以下命令来运行wasm程序。但是很显然，如果能运行成功的话，我就不会写这篇文档了。
 docker run -dp 8080:8080 \ --name=wasm-example \ --runtime=io."><meta itemprop=datePublished content="2022-11-28T19:02:27+08:00">
 <meta itemprop=dateModified content="2022-11-28T19:02:27+08:00">
-<meta itemprop=wordCount content="509">
+<meta itemprop=wordCount content="511">
 <meta itemprop=keywords content><meta name=twitter:card content="summary">
 <meta name=twitter:title content="运行docker wasm preview 失败教程">
 <meta name=twitter:description content="背景 docker宣布支持wasm，并且在wasm day上做了演讲。看到这个消息的时候初步跑了一下官方教程，成功的失败了，止步在containerd-shim-wasmedge-v1没有找到的错误。最近相关的消息多了起来，于是就心血来潮打算抽一些时间跑一下，提供一个趟坑教程方便想运行一下的小伙伴。
@@ -98,7 +98,7 @@ docker run -dp 8080:8080 \ --name=wasm-example \ --runtime=io.">
 <li class="collapse show" id=serverlesswebassembly>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm2 href=/serverless/webassembly/wasm2/>相关项目分析</a>
 <a class="td-sidebar-link td-sidebar-link__page active" id=m-serverlesswebassemblydockerwasmpreview href=/serverless/webassembly/dockerwasmpreview/>docker wasm preview 踩坑指北</a>
-<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblymanage-wasm-using-docker href=/serverless/webassembly/manage-wasm-using-docker/>docker+wasm</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblymanage-wasm-using-docker href=/serverless/webassembly/manage-wasm-using-docker/>using docker manage wasm【译】</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm1 href=/serverless/webassembly/wasm1/>wasm概述</a>
 </li>
 </ul>
@@ -319,7 +319,9 @@ DEBU[2022-11-29T16:41:45.171210165+08:00] /usr/sbin/iptables, [--wait -t nat -D 
 </code></pre><p>这里有几种可能性，一个是我用的docker版本呢还是不对，因为毕竟原来的分支被删除了，这个分支的代码可能仍然是有问题的。另一个是dockerd、containerd、containerd-shim-wasmedge-v1等组件之间的版本存在不兼容情况。</p>
 <p>首先针对第一中情况，继续看分支，开会做案例的时间跟这两个分支比较接近 backup-c8d-2022-10-21、backup-c8d-2022-11-07，所以依次尝试了下，不行。</p>
 <p>然后看到官方修改oscheck的<a href=https://github.com/moby/moby/pull/44181/files>代码pr</a>刚好就是他提交的，在remove-os-check分支上，尝试了下这个分支代码，依然不行。</p>
-<p>好了本次的踩坑之旅到此就结束了，再试就不礼貌了</p>
+<p>好了本次的踩坑之旅到此就结束了。</p>
+<p>附一张架构截图，docker engine会将启动信息下发到containerd，containerd下发到containerd-shim，containerd-shim发送到对应的运行时，在本例中就是wasmedge，然后wasmedge运行对应的wasm程序。</p>
+<p><img src=https://www.docker.com/wp-content/uploads/2022/10/docker-containerd-wasm-diagram.png.webp alt=docker-containerd-wasm-diagram.png></p>
 <p>于2022年11月19日</p>
 <h3 id=参考>参考</h3>
 <p><a href=https://docs.docker.com/desktop/wasm/>https://docs.docker.com/desktop/wasm/</a></p>

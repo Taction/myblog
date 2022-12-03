@@ -201,7 +201,9 @@ DEBU[2022-11-29T16:41:45.171210165+08:00] /usr/sbin/iptables, [--wait -t nat -D 
 &lt;/code>&lt;/pre>&lt;p>这里有几种可能性，一个是我用的docker版本呢还是不对，因为毕竟原来的分支被删除了，这个分支的代码可能仍然是有问题的。另一个是dockerd、containerd、containerd-shim-wasmedge-v1等组件之间的版本存在不兼容情况。&lt;/p>
 &lt;p>首先针对第一中情况，继续看分支，开会做案例的时间跟这两个分支比较接近 backup-c8d-2022-10-21、backup-c8d-2022-11-07，所以依次尝试了下，不行。&lt;/p>
 &lt;p>然后看到官方修改oscheck的&lt;a href="https://github.com/moby/moby/pull/44181/files">代码pr&lt;/a>刚好就是他提交的，在remove-os-check分支上，尝试了下这个分支代码，依然不行。&lt;/p>
-&lt;p>好了本次的踩坑之旅到此就结束了，再试就不礼貌了&lt;/p>
+&lt;p>好了本次的踩坑之旅到此就结束了。&lt;/p>
+&lt;p>附一张架构截图，docker engine会将启动信息下发到containerd，containerd下发到containerd-shim，containerd-shim发送到对应的运行时，在本例中就是wasmedge，然后wasmedge运行对应的wasm程序。&lt;/p>
+&lt;p>&lt;img src="https://www.docker.com/wp-content/uploads/2022/10/docker-containerd-wasm-diagram.png.webp" alt="docker-containerd-wasm-diagram.png">&lt;/p>
 &lt;p>于2022年11月19日&lt;/p>
 &lt;h3 id="参考">参考&lt;/h3>
 &lt;p>&lt;a href="https://docs.docker.com/desktop/wasm/">https://docs.docker.com/desktop/wasm/&lt;/a>&lt;/p>
