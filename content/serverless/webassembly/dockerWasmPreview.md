@@ -17,7 +17,7 @@ docker宣布支持wasm，并且在wasm day上做了演讲。看到这个消息�
 
 #### 安装 docker preview和WasmEdge
 
-首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux
+首先需要安装docker preview版本，在官方文档里有下载链接。这里以linux下的安装为例，其他类型的可以在官方文档处找到下载链接。
 
 如果你已经安装了docker，你应该先卸载旧的版本。可以通过官方教程或者以下命令卸载：
 
@@ -191,7 +191,7 @@ docker context create wasm --docker "host=unix:///tmp/docker.sock"
 docker context use wasm
 ```
 
-使用官方版本改代码的方式遇到了以下错误，查看dockerd日志是代码panic了，所以肯定不是这个分支的代码。
+使用官方版本改代码的方式，在运行上面启动一个wasm docker的时候遇到了以下错误，查看dockerd日志是代码panic了，所以肯定不是这个分支的代码。
 
 ```
 Unable to find image 'michaelirwin244/wasm-example:latest' locally
@@ -201,7 +201,7 @@ docker: unexpected EOF.
 See 'docker run --help'.
 ```
 
-由于wasm day的文档是指向[这个项目](https://github.com/rumpl/moby)自己构建二进制的，让我们看下这个项目的哪个分支可能是包含了这部分功能。首先可以看到`wasmedge`分支在被删除之前是在尝试合并入`c8d`分支。那么就remote添加这个源，并且把分支切到这个分支上，构建并运行。
+由于wasm day的文档是指向[这个项目](https://github.com/rumpl/moby)自己构建二进制的，而且目标分支已经删除了，让我们看下这个项目的哪个分支可能是包含了这部分功能。首先可以看到`wasmedge`分支在被删除之前是在尝试合并入`c8d`分支，那么这个分支很有可能就是目前此功能的开发分支。那么就remote添加这个源，并且把分支切到这个分支上，构建并运行。
 
 这个时候我就遇到本次试验之旅的大boss，最后一个问题的报错如下：
 
@@ -224,13 +224,13 @@ DEBU[2022-11-29T16:41:45.169235448+08:00] /usr/sbin/iptables, [--wait -t nat -C 
 DEBU[2022-11-29T16:41:45.171210165+08:00] /usr/sbin/iptables, [--wait -t nat -D DOCKER -p tcp -d 0/0 --dport 8080 -j DNAT --to-destination 172.17.0.2:8080 ! -i docker0]
 ```
 
-这里有几种可能性，一个是我用的docker版本呢还是不对，因为毕竟原来的分支被删除了，这个分支的代码可能仍然是有问题的。另一个是dockerd、containerd、containerd-shim-wasmedge-v1等组件之间的版本存在不兼容情况。
+这里有几种可能性，一个是我用的docker版本呢还是不对，因为毕竟原来的分支被删除了，这个分支的代码可能仍然是有问题的。另一个是dockerd、containerd、containerd-shim-wasmedge-v1等组件之间的版本存在不兼容情况（因为我从官方的release分支切换到了一个开发者分支）。
 
 首先针对第一中情况，继续看分支，开会做案例的时间跟这两个分支比较接近 backup-c8d-2022-10-21、backup-c8d-2022-11-07，所以依次尝试了下，不行。
 
 然后看到官方修改oscheck的[代码pr](https://github.com/moby/moby/pull/44181/files)刚好就是他提交的，在remove-os-check分支上，尝试了下这个分支代码，依然不行。
 
-好了本次的踩坑之旅到此就结束了。
+好了本次的踩坑之旅到此就结束了，如果想要继续深入尝试的话应该需要对这些组件有更进一步的了解。而且在官方issue中也有说明，这个功能目前还是试验性质的，没有production ready，还有很多功能要做。所以还是等官方这个功能稳定之后吧。
 
 附一张架构截图，docker engine会将启动信息下发到containerd，containerd下发到containerd-shim，containerd-shim发送到对应的运行时，在本例中就是wasmedge，然后wasmedge运行对应的wasm程序。
 
