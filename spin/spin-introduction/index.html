@@ -1,0 +1,385 @@
+<!doctype html><html lang=en class=no-js>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=generator content="Hugo 0.88.1"><meta name=ROBOTS content="NOINDEX, NOFOLLOW">
+<link rel="shortcut icon" href=/favicons/favicon.ico>
+<link rel=apple-touch-icon href=/favicons/apple-touch-icon-180x180.png sizes=180x180>
+<link rel=icon type=image/png href=/favicons/favicon-16x16.png sizes=16x16>
+<link rel=icon type=image/png href=/favicons/favicon-32x32.png sizes=32x32>
+<link rel=icon type=image/png href=/favicons/android-36x36.png sizes=36x36>
+<link rel=icon type=image/png href=/favicons/android-48x48.png sizes=48x48>
+<link rel=icon type=image/png href=/favicons/android-72x72.png sizes=72x72>
+<link rel=icon type=image/png href=/favicons/android-96x96.png sizes=96x96>
+<link rel=icon type=image/png href=/favicons/android-144x144.png sizes=144x144>
+<link rel=icon type=image/png href=/favicons/android-192x192.png sizes=192x192>
+<title>Spin Introduction | Taction's Blog</title>
+<meta name=description content><meta property="og:title" content="Spin Introduction">
+<meta property="og:description" content="介绍 hippo是一个WebAssembly PaaS平台，用于创建基于WebAssembly的微服务和Web应用程序。它提供了一个基于浏览器的门户、一个用于客户端CLI的API以及后端管理特性，以便与Bindle服务器、负载平衡器和Spin一起工作。Hippo平台的管理员使用nomad配置和安装Hippo的组件。服务发现、应用程序调度和联网都委托给了nomad，而Hippo则提供了干净简单的开发者体验。
+Bindle 可以认为是WebAssembly的版本化包管理工具，用于存储和获取WebAssembly程序，实际上它可以存储任意类型的数据，如WebAssembly模块、Templates、Web files such as HTML, CSS, JavaScript, and images、Machine learning models、以及任何你的应用程序依赖的文件。
+路由器组件是Hippo平台的一部分，负责将HTTP/s流量路由到应用程序，并代理平台API流量。由Yet-Another-Reverse-Proxy（YARP）项目提供。
+Spin是一个使用WebAssembly组件构建和运行事件驱动的微服务应用程序的框架。即用于实际执行WebAssembly程序。
+通过这个案例也能更多看到fermyon的具体架构。简单的画了一下其架构
+准备  在Ubuntu环境下安装可以遵循以下命令教程，否则请参考原教程
+ Nomad sudo apt-get install software-properties-common curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add - sudo apt-add-repository &#34;deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs)main&#34; sudo apt-get update && sudo apt-get install nomad Consul install consul
+wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg echo &#34;deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs)main&#34; | sudo tee /etc/apt/sources.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://taction.top/spin/spin-introduction/"><meta property="article:section" content="spin">
+<meta property="article:published_time" content="2023-02-11T16:22:10+08:00">
+<meta property="article:modified_time" content="2023-02-11T16:22:10+08:00">
+<meta itemprop=name content="Spin Introduction">
+<meta itemprop=description content="介绍 hippo是一个WebAssembly PaaS平台，用于创建基于WebAssembly的微服务和Web应用程序。它提供了一个基于浏览器的门户、一个用于客户端CLI的API以及后端管理特性，以便与Bindle服务器、负载平衡器和Spin一起工作。Hippo平台的管理员使用nomad配置和安装Hippo的组件。服务发现、应用程序调度和联网都委托给了nomad，而Hippo则提供了干净简单的开发者体验。
+Bindle 可以认为是WebAssembly的版本化包管理工具，用于存储和获取WebAssembly程序，实际上它可以存储任意类型的数据，如WebAssembly模块、Templates、Web files such as HTML, CSS, JavaScript, and images、Machine learning models、以及任何你的应用程序依赖的文件。
+路由器组件是Hippo平台的一部分，负责将HTTP/s流量路由到应用程序，并代理平台API流量。由Yet-Another-Reverse-Proxy（YARP）项目提供。
+Spin是一个使用WebAssembly组件构建和运行事件驱动的微服务应用程序的框架。即用于实际执行WebAssembly程序。
+通过这个案例也能更多看到fermyon的具体架构。简单的画了一下其架构
+准备  在Ubuntu环境下安装可以遵循以下命令教程，否则请参考原教程
+ Nomad sudo apt-get install software-properties-common curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add - sudo apt-add-repository &#34;deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs)main&#34; sudo apt-get update && sudo apt-get install nomad Consul install consul
+wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg echo &#34;deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs)main&#34; | sudo tee /etc/apt/sources."><meta itemprop=datePublished content="2023-02-11T16:22:10+08:00">
+<meta itemprop=dateModified content="2023-02-11T16:22:10+08:00">
+<meta itemprop=wordCount content="402">
+<meta itemprop=keywords content><meta name=twitter:card content="summary">
+<meta name=twitter:title content="Spin Introduction">
+<meta name=twitter:description content="介绍 hippo是一个WebAssembly PaaS平台，用于创建基于WebAssembly的微服务和Web应用程序。它提供了一个基于浏览器的门户、一个用于客户端CLI的API以及后端管理特性，以便与Bindle服务器、负载平衡器和Spin一起工作。Hippo平台的管理员使用nomad配置和安装Hippo的组件。服务发现、应用程序调度和联网都委托给了nomad，而Hippo则提供了干净简单的开发者体验。
+Bindle 可以认为是WebAssembly的版本化包管理工具，用于存储和获取WebAssembly程序，实际上它可以存储任意类型的数据，如WebAssembly模块、Templates、Web files such as HTML, CSS, JavaScript, and images、Machine learning models、以及任何你的应用程序依赖的文件。
+路由器组件是Hippo平台的一部分，负责将HTTP/s流量路由到应用程序，并代理平台API流量。由Yet-Another-Reverse-Proxy（YARP）项目提供。
+Spin是一个使用WebAssembly组件构建和运行事件驱动的微服务应用程序的框架。即用于实际执行WebAssembly程序。
+通过这个案例也能更多看到fermyon的具体架构。简单的画了一下其架构
+准备  在Ubuntu环境下安装可以遵循以下命令教程，否则请参考原教程
+ Nomad sudo apt-get install software-properties-common curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add - sudo apt-add-repository &#34;deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs)main&#34; sudo apt-get update && sudo apt-get install nomad Consul install consul
+wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg echo &#34;deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs)main&#34; | sudo tee /etc/apt/sources.">
+<link rel=preload href=/scss/main.min.7deef606a7f12d3311a44ac414730e6af0a760f211628cf17f32e0fbcf9a06e9.css as=style>
+<link href=/scss/main.min.7deef606a7f12d3311a44ac414730e6af0a760f211628cf17f32e0fbcf9a06e9.css rel=stylesheet integrity>
+<script src=https://code.jquery.com/jquery-3.5.1.min.js integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin=anonymous></script>
+</head>
+<body class=td-page>
+<header>
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+<a class=navbar-brand href=/>
+<span class=navbar-logo><svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 500 500" style="enable-background:new 0 0 500 500"><g><path style="fill:#fff" d="M116.8525 421.9722c-5.7041.0-10.3442-4.3127-10.3442-9.6129V88.183c0-5.3002 4.6401-9.6117 10.3442-9.6117H320.858c3.0347.0 9.3959.5498 11.7506 2.6302l.3545.3442 58.905 63.2912c2.3101 2.491 2.9202 8.4928 2.9202 11.3184v256.2039c0 5.3002-4.6407 9.6129-10.3436 9.6129H116.8525z"/><g><g><g><path style="fill:#767676" d="M384.4445 423.2066H116.852c-6.3839.0-11.5786-4.8658-11.5786-10.8474V88.1831c0-5.9804 5.1947-10.8461 11.5786-10.8461h204.0062c.377.0 9.2786.0329 12.568 2.9389l.3947.3833 58.9508 63.337c3.2135 3.4652 3.2514 11.7924 3.2514 12.1593v256.2036C396.0231 418.3408 390.8284 423.2066 384.4445 423.2066zM116.5079 411.9189c.0848.0278.1999.0531.3441.0531h267.5925c.1442.0.2581-.0253.3441-.0531V156.1556c-.0076-.9033-.3593-3.7347-.7034-5.0037l-57.6527-61.9416c-1.4651-.3176-4.4533-.6389-5.5742-.6389H116.852c-.143.0-.2594.024-.3441.0531V411.9189zm267.4533-261.149zM327.0321 89.371v.0013V89.371z"/></g></g></g><g><g><path style="fill:#5b7fc0" d="M189.0874 210.1754l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.025 2.454-11.4897 6.4116-15.4473C177.5953 212.627 183.0601 210.1742 189.0874 210.1754zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403S197.0816 234.1722 197.0804 232.033z"/><path style="opacity:.3;fill:#fff" d="M189.0898 210.176c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 212.6276 183.0612 210.176 189.0898 210.176zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 236.239 197.0839 234.2399 197.0839 232.0372z"/><g><defs><path id="SVGID_1_" d="M194.7376 237.6875c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.999 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 234.2399 196.1861 236.239 194.7376 237.6875z"/></defs><clipPath id="SVGID_2_"><use xlink:href="#SVGID_1_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_2_);fill:#fff" d="M190.0704 225.0237c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 225.7247 191.9774 225.0237 190.0704 225.0237z"/><path style="opacity:.13;clip-path:url(#SVGID_2_);fill:#020202" d="M190.0704 225.0237c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 225.7247 191.9774 225.0237 190.0704 225.0237z"/></g><g><defs><path id="SVGID_3_" d="M189.0898 210.176c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 212.6276 183.0612 210.176 189.0898 210.176zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 236.239 197.0839 234.2399 197.0839 232.0372z"/></defs><clipPath id="SVGID_4_"><use xlink:href="#SVGID_3_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_4_);fill:#5b7fc0" d="M172.6595 215.6045c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8612 12.0547.0024 21.8636-9.797 21.8613-21.8612.0024-3.8475-1.0151-7.6326-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 209.1953 176.6171 211.647 172.6595 215.6045z"/></g></g><rect x="198.8952" y="225.1043" style="fill:#5b7fc0" width="122.6266" height="13.8671"/></g><g><path style="fill:#d95140" d="M189.0874 155.7611l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.0249 2.454-11.4897 6.4116-15.4473C177.5953 158.2128 183.0601 155.7599 189.0874 155.7611zm7.993 21.8577c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403C196.2508 181.7667 197.0816 179.758 197.0804 177.6188z"/><path style="opacity:.3;fill:#fff" d="M189.0898 155.7617c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 158.2134 183.0612 155.7617 189.0898 155.7617zm7.9941 21.8613c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 181.8248 197.0839 179.8256 197.0839 177.623z"/><g><defs><path id="SVGID_5_" d="M194.7376 183.2733c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.9989 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 179.8256 196.1861 181.8248 194.7376 183.2733z"/></defs><clipPath id="SVGID_6_"><use xlink:href="#SVGID_5_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_6_);fill:#fff" d="M190.0704 170.6095c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 171.3104 191.9774 170.6095 190.0704 170.6095z"/><path style="opacity:.13;clip-path:url(#SVGID_6_);fill:#020202" d="M190.0704 170.6095c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 171.3104 191.9774 170.6095 190.0704 170.6095z"/></g><g><defs><path id="SVGID_7_" d="M189.0898 155.7617c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 158.2134 183.0612 155.7617 189.0898 155.7617zm7.9941 21.8613c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 181.8248 197.0839 179.8256 197.0839 177.623z"/></defs><clipPath id="SVGID_8_"><use xlink:href="#SVGID_7_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_8_);fill:#d95140" d="M172.6595 161.1903c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8613 12.0547.0024 21.8636-9.797 21.8613-21.8613.0024-3.8474-1.0151-7.6326-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 154.7811 176.6171 157.2327 172.6595 161.1903z"/></g><rect x="198.8952" y="170.69" style="fill:#d95140" width="122.6266" height="13.8671"/></g><g><g><path style="fill:#56a55c" d="M189.5379 264.6147l.0012-.0012c7.7751.0012 15.0294 4.1862 18.932 10.9235 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032-5.8394.0-11.3281-2.2733-15.458-6.4032-4.13-4.13-6.4032-9.6186-6.4056-15.4628.0012-6.0249 2.454-11.4897 6.4116-15.4472C178.0458 267.0663 183.5105 264.6135 189.5379 264.6147zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6538 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403C196.7013 290.6202 197.5321 288.6115 197.5309 286.4723z"/><path style="opacity:.3;fill:#fff" d="M189.5403 264.6153c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8065-21.8612-21.8613.0-6.0285 2.4516-11.492 6.4116-15.452C178.0482 267.0669 183.5117 264.6153 189.5403 264.6153zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.6366 290.6783 197.5344 288.6792 197.5344 286.4765z"/><g><defs><path id="SVGID_9_" d="M195.1881 292.1268c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.9989 7.9942-7.9941 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.5344 288.6792 196.6366 290.6783 195.1881 292.1268z"/></defs><clipPath id="SVGID_10_"><use xlink:href="#SVGID_9_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_10_);fill:#fff" d="M190.5209 279.463c-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7446-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9941 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C194.239 280.164 192.4279 279.463 190.5209 279.463z"/><path style="opacity:.13;clip-path:url(#SVGID_10_);fill:#020202" d="M190.5209 279.463c-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7446-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9941 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C194.239 280.164 192.4279 279.463 190.5209 279.463z"/></g><g><defs><path id="SVGID_11_" d="M189.5403 264.6153c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8065-21.8612-21.8613.0-6.0285 2.4516-11.492 6.4116-15.452C178.0482 267.0669 183.5117 264.6153 189.5403 264.6153zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.6366 290.6783 197.5344 288.6792 197.5344 286.4765z"/></defs><clipPath id="SVGID_12_"><use xlink:href="#SVGID_11_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_12_);fill:#56a55c" d="M173.11 270.0439c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8613 12.0547.0024 21.8636-9.797 21.8613-21.8613.0024-3.8474-1.0151-7.6326-2.9353-10.9462-3.8977-6.7325-11.1497-10.9151-18.926-10.9151C182.5311 263.6346 177.0676 266.0863 173.11 270.0439z"/></g></g><rect x="199.3456" y="279.5436" style="fill:#56a55c" width="122.6266" height="13.8671"/></g><g><g><path style="fill:#f1bc42" d="M189.0874 318.7208l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3305-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.025 2.454-11.4897 6.4116-15.4472C177.5953 321.1724 183.0601 318.7196 189.0874 318.7208zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403S197.0816 342.7176 197.0804 340.5784z"/><path style="opacity:.3;fill:#fff" d="M189.0898 318.7214c7.7763.0 15.0283 4.1826 18.926 10.915 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8612-12.0547.0024-21.8636-9.8065-21.8612-21.8612.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 321.173 183.0612 318.7214 189.0898 318.7214zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 344.7844 197.0839 342.7853 197.0839 340.5826z"/><g><defs><path id="SVGID_13_" d="M194.7376 346.2329c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.999 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 342.7853 196.1861 344.7844 194.7376 346.2329z"/></defs><clipPath id="SVGID_14_"><use xlink:href="#SVGID_13_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_14_);fill:#fff" d="M190.0704 333.5691c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0834 6.1218 2.8788C193.7885 334.2701 191.9774 333.5691 190.0704 333.5691z"/><path style="opacity:.13;clip-path:url(#SVGID_14_);fill:#020202" d="M190.0704 333.5691c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0834 6.1218 2.8788C193.7885 334.2701 191.9774 333.5691 190.0704 333.5691z"/></g><g><defs><path id="SVGID_15_" d="M189.0898 318.7214c7.7763.0 15.0283 4.1826 18.926 10.915 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8612-12.0547.0024-21.8636-9.8065-21.8612-21.8612.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 321.173 183.0612 318.7214 189.0898 318.7214zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 344.7844 197.0839 342.7853 197.0839 340.5826z"/></defs><clipPath id="SVGID_16_"><use xlink:href="#SVGID_15_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_16_);fill:#f1bc42" d="M172.6595 324.15c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8612 12.0547.0024 21.8636-9.797 21.8613-21.8612.0024-3.8474-1.0151-7.6327-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 317.7407 176.6171 320.1924 172.6595 324.15z"/></g></g><rect x="198.8952" y="333.6497" style="fill:#f1bc42" width="122.6266" height="13.8671"/></g></g></svg></span><span class=font-weight-bold>Taction's Blog</span>
+</a>
+<div class="td-navbar-nav-scroll ml-md-auto" id=main_navbar>
+<ul class="navbar-nav mt-2 mt-lg-0">
+</ul>
+</div>
+<div class="navbar-nav d-none d-lg-block">
+</div>
+</nav>
+</header>
+<div class="container-fluid td-outer">
+<div class=td-main>
+<div class="row flex-xl-nowrap">
+<div class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+<div id=td-sidebar-menu class=td-sidebar__inner>
+<nav class="collapse td-sidebar-nav pt-2 pl-4" id=td-section-nav>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section"></a>
+</li>
+<ul>
+<li class="collapse show">
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/spin/ class="align-left pl-0 pr-2 active td-sidebar-link td-sidebar-link__section">spin</a>
+</li>
+<ul>
+<li class="collapse show" id=spin>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-spinspin-up-sourcecode href=/spin/spin-up-sourcecode/>Spin up 源码分析</a>
+<a class="td-sidebar-link td-sidebar-link__page active" id=m-spinspin-introduction href=/spin/spin-introduction/>Spin介绍</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">serverless</a>
+</li>
+<ul>
+<li class="collapse show" id=serverless>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/webassembly/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">WebAssembly</a>
+</li>
+<ul>
+<li class="collapse show" id=serverlesswebassembly>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm2 href=/serverless/webassembly/wasm2/>相关项目分析</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblydockerwasmpreview href=/serverless/webassembly/dockerwasmpreview/>docker wasm preview 踩坑指北</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblymanage-wasm-using-docker href=/serverless/webassembly/manage-wasm-using-docker/>using docker manage wasm【译】</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm1 href=/serverless/webassembly/wasm1/>wasm概述</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/platform/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">platform</a>
+</li>
+<ul>
+<li class="collapse show" id=serverlessplatform>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-demo href=/serverless/platform/knative-demo/>Knative Demo</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-queue href=/serverless/platform/knative-queue/>Knative Queue</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-scalefrom0 href=/serverless/platform/knative-scalefrom0/>Knative Scalefrom0</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-crd href=/serverless/platform/knative-crd/>Knative Crd</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformdebug-knative href=/serverless/platform/debug-knative/>Debug Knative</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-use href=/serverless/platform/knative-use/>Knative Use</a>
+</li>
+</ul>
+</ul>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/wasmcloud/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">wasmcloud</a>
+</li>
+<ul>
+<li class="collapse show" id=wasmcloud>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-wasmclouddapr-provider href=/wasmcloud/dapr-provider/>Dapr Provider</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-wasmclouda2acall href=/wasmcloud/a2acall/>Actor to Actor call</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/code/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">code</a>
+</li>
+<ul>
+<li class="collapse show" id=code>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-codeacpuquestion href=/code/acpuquestion/>sidecar cpu</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/dapr/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">dapr</a>
+</li>
+<ul>
+<li class="collapse show" id=dapr>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/git/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">Gits</a>
+</li>
+<ul>
+<li class="collapse show" id=git>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-gitdco-rebase href=/git/dco-rebase/>DCO Rebase</a>
+</li>
+</ul>
+</ul>
+</li>
+</ul>
+</ul>
+</nav>
+</div>
+</div>
+<div class="d-none d-xl-block col-xl-2 td-toc d-print-none">
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+</div>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#介绍>介绍</a></li>
+<li><a href=#准备>准备</a></li>
+<li><a href=#启动>启动</a></li>
+<li><a href=#运行一个wasm程序>运行一个wasm程序</a></li>
+<li><a href=#部署到云端>部署到云端</a></li>
+<li><a href=#spin-与-wasmcloud异同点分析>Spin 与 wasmcloud异同点分析</a></li>
+<li><a href=#参考>参考</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+<main class="col-12 col-md-9 col-xl-8 pl-md-5" role=main>
+<nav aria-label=breadcrumb class="d-none d-md-block d-print-none">
+<ol class="breadcrumb spb-1">
+<li class=breadcrumb-item>
+<a href=https://taction.top/spin/>spin</a>
+</li>
+<li class="breadcrumb-item active" aria-current=page>
+<a href=https://taction.top/spin/spin-introduction/>Spin介绍</a>
+</li>
+</ol>
+</nav>
+<div class=td-content>
+<h1>Spin Introduction</h1>
+<h3 id=介绍>介绍</h3>
+<p>hippo是一个WebAssembly PaaS平台，用于创建基于WebAssembly的微服务和Web应用程序。它提供了一个基于浏览器的门户、一个用于客户端CLI的API以及后端管理特性，以便与Bindle服务器、负载平衡器和Spin一起工作。Hippo平台的管理员使用nomad配置和安装Hippo的组件。服务发现、应用程序调度和联网都委托给了nomad，而Hippo则提供了干净简单的开发者体验。</p>
+<p>Bindle 可以认为是WebAssembly的版本化包管理工具，用于存储和获取WebAssembly程序，实际上它可以存储任意类型的数据，如WebAssembly模块、Templates、Web files such as HTML, CSS, JavaScript, and images、Machine learning models、以及任何你的应用程序依赖的文件。</p>
+<p>路由器组件是Hippo平台的一部分，负责将HTTP/s流量路由到应用程序，并代理平台API流量。由Yet-Another-Reverse-Proxy（YARP）项目提供。</p>
+<p>Spin是一个使用WebAssembly组件构建和运行事件驱动的微服务应用程序的框架。即用于实际执行WebAssembly程序。</p>
+<p>通过<a href="https://www.fermyon.com/blog/scale-to-zero-problem?&utm_medium=blog&utm_campaign=related">这个案例</a>也能更多看到fermyon的具体架构。简单的画了一下其架构</p>
+<p><img src=https://image-1255620078.cos.ap-nanjing.myqcloud.com/image-20230206181355757.png alt=image-20230206181355757></p>
+<h3 id=准备>准备</h3>
+<blockquote>
+<p>在Ubuntu环境下安装可以遵循以下命令教程，否则请参考<a href=https://github.com/fermyon/installer/blob/main/local/README.md>原教程</a></p>
+</blockquote>
+<h4 id=nomad>Nomad</h4>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>sudo apt-get install software-properties-common
+
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository <span style=color:#e6db74>&#34;deb [arch=amd64] https://apt.releases.hashicorp.com </span><span style=color:#66d9ef>$(</span>lsb_release -cs<span style=color:#66d9ef>)</span><span style=color:#e6db74> main&#34;</span>
+sudo apt-get update <span style=color:#f92672>&amp;&amp;</span> sudo apt-get install nomad
+</code></pre></div><h4 id=consul>Consul</h4>
+<p><a href=https://developer.hashicorp.com/consul/downloads>install consul</a></p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo <span style=color:#e6db74>&#34;deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com </span><span style=color:#66d9ef>$(</span>lsb_release -cs<span style=color:#66d9ef>)</span><span style=color:#e6db74> main&#34;</span> | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update <span style=color:#f92672>&amp;&amp;</span> sudo apt install consul
+</code></pre></div><h4 id=spin>Spin</h4>
+<p><a href=https://developer.fermyon.com/spin/quickstart/>spin quick starts</a></p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>curl -fsSL https://developer.fermyon.com/downloads/install.sh | bash
+sudo mv ./spin /usr/local/bin/spin
+</code></pre></div><h4 id=tinygo>tinygo</h4>
+<p>仅在需要编译tinygo wasm程序时需要安装,<a href=https://tinygo.org/getting-started/install/linux/#arch-linux>教程</a></p>
+<pre tabindex=0><code>wget https://github.com/tinygo-org/tinygo/releases/download/v0.26.0/tinygo_0.26.0_amd64.deb
+sudo dpkg -i tinygo_0.26.0_amd64.deb
+export PATH=$PATH:/usr/local/bin
+tinygo version
+</code></pre><h3 id=启动>启动</h3>
+<blockquote>
+<p>以本地模式启动https://github.com/fermyon/installer/blob/main/local/README.md</p>
+</blockquote>
+<p>通过执行<code>./start.sh</code>脚本来部署本地环境。这个脚本做的事情比较清晰。</p>
+<ol>
+<li>判断机器系统是否支持</li>
+<li>判断 consul、nomad、spin命令是否存在</li>
+<li>删除data目录，创建log目录用来存放启动过程中的日志</li>
+<li>启动consul</li>
+<li>启动nomad</li>
+<li>通过nomad启动traefik，启动的nomad定义在job下</li>
+<li>通过nomad启动bindle、hippo，定义都在job目录下</li>
+<li>等待hippo可访问，输出以上各项的访问地址</li>
+</ol>
+<p>命令行界面会输出一些export命令，另开一个命令行终端并执行这些命令，打开http://hippo.local.fermyon.link/页面注册一个账户，并在Teminal中执行以下命令</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>export HIPPO_USERNAME<span style=color:#f92672>=</span>&lt;username&gt;
+export HIPPO_PASSWORD<span style=color:#f92672>=</span>&lt;password&gt;
+</code></pre></div><h3 id=运行一个wasm程序>运行一个wasm程序</h3>
+<h5 id=安装模板>安装模板</h5>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>spin templates install --git https://github.com/fermyon/spin
+</code></pre></div><p>安装完成后可以通过<code>spin templates list</code>命令来查看已安装的模板。</p>
+<h5 id=新建一个wasm程序>新建一个wasm程序</h5>
+<p>通过<code>spin new</code>命令可以根据模板创建一个wasm项目，由于我个人对go比较熟悉，我们先创建一个go的项目使用http trigger。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ spin new
+Pick a template to start your project with:
+  http-c <span style=color:#f92672>(</span>HTTP request handler using C and the Zig toolchain<span style=color:#f92672>)</span>
+  http-csharp <span style=color:#f92672>(</span>HTTP request handler using C# <span style=color:#f92672>(</span>EXPERIMENTAL<span style=color:#f92672>))</span>
+&gt; http-go <span style=color:#f92672>(</span>HTTP request handler using <span style=color:#f92672>(</span>Tiny<span style=color:#f92672>)</span>Go<span style=color:#f92672>)</span>
+  http-grain <span style=color:#f92672>(</span>HTTP request handler using Grain<span style=color:#f92672>)</span>
+  http-rust <span style=color:#f92672>(</span>HTTP request handler using Rust<span style=color:#f92672>)</span>
+  http-swift <span style=color:#f92672>(</span>HTTP request handler using SwiftWasm<span style=color:#f92672>)</span>
+  http-zig <span style=color:#f92672>(</span>HTTP request handler using Zig<span style=color:#f92672>)</span>
+  redis-go <span style=color:#f92672>(</span>Redis message handler using <span style=color:#f92672>(</span>Tiny<span style=color:#f92672>)</span>Go<span style=color:#f92672>)</span>
+  redis-rust <span style=color:#f92672>(</span>Redis message handler using Rust<span style=color:#f92672>)</span>
+
+Enter a name <span style=color:#66d9ef>for</span> your new project: hello_rust
+Project description: My first Rust Spin application
+HTTP base: /
+HTTP path: /...
+$ tree
+├── .cargo
+│   └── config.toml
+├── .gitignore
+├── Cargo.toml
+├── spin.toml
+└── src
+    └── lib.rs
+</code></pre></div><p>项目主目录下的<code>spin.toml</code>文件定义的就是这个spin项目的配置清单文件:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-toml data-lang=toml><span style=color:#a6e22e>spin_version</span> = <span style=color:#e6db74>&#34;1&#34;</span>
+<span style=color:#a6e22e>authors</span> = [<span style=color:#e6db74>&#34;zhangchao &lt;zchao9100@gmail.com&gt;&#34;</span>]
+<span style=color:#a6e22e>description</span> = <span style=color:#e6db74>&#34;a spin http handler in go for wasm&#34;</span>
+<span style=color:#a6e22e>name</span> = <span style=color:#e6db74>&#34;spinhttpgo&#34;</span>
+<span style=color:#a6e22e>trigger</span> = { <span style=color:#a6e22e>type</span> = <span style=color:#e6db74>&#34;http&#34;</span>, <span style=color:#a6e22e>base</span> = <span style=color:#e6db74>&#34;/&#34;</span> }
+<span style=color:#a6e22e>version</span> = <span style=color:#e6db74>&#34;0.1.0&#34;</span>
+
+[[<span style=color:#a6e22e>component</span>]]
+<span style=color:#a6e22e>id</span> = <span style=color:#e6db74>&#34;spinhttpgo&#34;</span>
+<span style=color:#a6e22e>source</span> = <span style=color:#e6db74>&#34;main.wasm&#34;</span>
+[<span style=color:#a6e22e>component</span>.<span style=color:#a6e22e>trigger</span>]
+<span style=color:#a6e22e>route</span> = <span style=color:#e6db74>&#34;/hello&#34;</span>
+[<span style=color:#a6e22e>component</span>.<span style=color:#a6e22e>build</span>]
+<span style=color:#a6e22e>command</span> = <span style=color:#e6db74>&#34;tinygo build -wasm-abi=generic -target=wasi -gc=leaking -no-debug -o main.wasm main.go&#34;</span>
+</code></pre></div><p>运行<code>spin build</code>命令会执行上面文件中的comman命令来编译wasm程序。执行完成后在项目目录下会新增一个<code>main.wasm</code>文件。</p>
+<h5 id=源码>源码</h5>
+<p>项目源码非常简单，胶水代码已经包含在spin sdk中，只需要在函数中实现自己的业务逻辑就行，对于这个demo来说就是在网络请求时返回纯文本<code>Hello Fermyon!</code>.</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+	<span style=color:#e6db74>&#34;fmt&#34;</span>
+	<span style=color:#e6db74>&#34;net/http&#34;</span>
+
+	<span style=color:#a6e22e>spinhttp</span> <span style=color:#e6db74>&#34;github.com/fermyon/spin/sdk/go/http&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>init</span>() {
+	<span style=color:#a6e22e>spinhttp</span>.<span style=color:#a6e22e>Handle</span>(<span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>w</span> <span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>ResponseWriter</span>, <span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>Request</span>) {
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>Header</span>().<span style=color:#a6e22e>Set</span>(<span style=color:#e6db74>&#34;Content-Type&#34;</span>, <span style=color:#e6db74>&#34;text/plain&#34;</span>)
+		<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Fprintln</span>(<span style=color:#a6e22e>w</span>, <span style=color:#e6db74>&#34;Hello Fermyon!&#34;</span>)
+	})
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {}
+</code></pre></div><h5 id=运行wasm程序>运行wasm程序</h5>
+<p>通过<code>spin up</code>命令可以运行wasm程序</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ spin up
+Serving HTTP on address http://127.0.0.1:3000
+Available Routes:
+  spin-hello-world: http://127.0.0.1:3000/hello
+</code></pre></div><p>访问<code>http://127.0.0.1:3000/hello</code>即可看到wasm程序运行的结果：</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ curl -i localhost:3000/hello
+HTTP/1.1 <span style=color:#ae81ff>200</span> OK
+content-type: text/plain
+content-length: <span style=color:#ae81ff>15</span>
+date: Mon, <span style=color:#ae81ff>12</span> Feb <span style=color:#ae81ff>2023</span> 07:49:01 GMT
+
+Hello Fermyon!
+</code></pre></div><h3 id=部署到云端>部署到云端</h3>
+<p>通过<code>spin deploy</code>命令可以将程序部署到Fermyon云端运行。</p>
+<h3 id=spin-与-wasmcloud异同点分析>Spin 与 wasmcloud异同点分析</h3>
+<blockquote>
+<p>个人对这两个项目的了解，其中难免有疏漏之处，若有不妥之处，望不吝赐教。</p>
+</blockquote>
+<h5 id=interface定义>interface定义</h5>
+<p>spin 使用wasm component model来定义API，这样的好处是可以复用工具链来生成模板代码，对多语言的支持上来说所需要做的努力更少。</p>
+<p>wasmcloud是通过代码生成，自己从0构建了一套开发者使用工具，并且生成的代码更容易使用，有些框架层的模板代码给你一起生成了（主要针对component，wasm的开发来说两者基本差不多）。</p>
+<h5 id=可扩展性或者说用户自定义interface>可扩展性或者说用户自定义interface</h5>
+<p>spin的wasm程序与“环境”进行交互可以通过http trigger获取http的能力，通过wasi获取wasi中定义的系统能力。触发wasm程序执行除了内置的http和redis外，用户可以利用spin提供的库自己开发程序。</p>
+<p>wasmcloud有capability模型，用户可以通过自定义interface开发Provider（提供能力）和actor（wasm程序），wasmcloud的工具会生成sdk（目前支持rust和tinygo）来简化开发避免模板代码，使用户专注于逻辑代码。</p>
+<h5 id=wasm程序与能力提供程序交互>wasm程序与能力提供程序交互</h5>
+<p>spin来说是通过函数调用的方式来调用runtime提供的方法。</p>
+<p>wasmcloud做了一层异步的rpc解耦封装。wasm程序调用的是将消息序列化后调用runtime一个固定的方法，runtime将信息发布到nats（消息通信组件，团队正在尝试支持其他的），Provider订阅发给自己的消息，执行对应的函数，如果是wasm调用Provider就还需要将结果发回nats中。这样就在中间引入了消息队列和更多的网络和序列化开销。</p>
+<h5 id=学习成本>学习成本</h5>
+<p>spin会低一点，用户唯一做的就是基于sdk来开发自己的应用，更适合只需要获取wasi提供的能力和网络能力的。如果要</p>
+<p>wasmcloud因为系统中涉及的模块多，所以会高一些，至少你需要搞懂什么是Provider、actor、link。但是有UI界面和比较好的文档支持，所以个人觉得也还行。</p>
+<h3 id=参考>参考</h3>
+<p><a href=https://docs.hippofactory.dev/topics/architecture/>https://docs.hippofactory.dev/topics/architecture/</a></p>
+<p><a href=https://github.com/WebAssembly/component-model>https://github.com/WebAssembly/component-model</a></p>
+<p><a href=https://www.fermyon.com/blog/webassembly-component-model>https://www.fermyon.com/blog/webassembly-component-model</a></p>
+<p><a href=https://radu-matei.com/blog/intro-wasm-components/>https://radu-matei.com/blog/intro-wasm-components/</a></p>
+<p><a href="https://www.fermyon.com/blog/scale-to-zero-problem?&utm_medium=blog&utm_campaign=related">https://www.fermyon.com/blog/scale-to-zero-problem?&utm_medium=blog&utm_campaign=related</a></p>
+<p><a href=https://www.fermyon.com/blog/spin-nomad>https://www.fermyon.com/blog/spin-nomad</a></p>
+<p><a href="https://www.fermyon.com/blog/scale-to-zero-problem?&utm_medium=blog&utm_campaign=related">https://www.fermyon.com/blog/scale-to-zero-problem?&utm_medium=blog&utm_campaign=related</a></p>
+<div class="text-muted mt-5 pt-3 border-top">
+</div>
+</div>
+</main>
+</div>
+</div>
+<footer class="bg-dark py-5 row d-print-none">
+<div class="container-fluid mx-sm-5">
+<div class=row>
+<div class="col-6 col-sm-4 text-xs-center order-sm-2">
+</div>
+<div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+</div>
+<div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+</div>
+</div>
+</div>
+</footer>
+</div>
+<script src=https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js integrity=sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN crossorigin=anonymous></script>
+<script src=https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js integrity=sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF crossorigin=anonymous></script>
+<script src=/js/main.min.f8dc12214b1b557b8ee4603ff35df42ebeef990cf05109190b758b04eac03307.js integrity="sha256-+NwSIUsbVXuO5GA/8130Lr7vmQzwUQkZC3WLBOrAMwc=" crossorigin=anonymous></script>
+</body>
+</html>

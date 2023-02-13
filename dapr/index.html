@@ -2,7 +2,8 @@
 <head>
 <meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
-<meta name=generator content="Hugo 0.88.1"><meta name=ROBOTS content="NOINDEX, NOFOLLOW">
+<meta name=generator content="Hugo 0.88.1"><link rel=alternate type=application/rss+xml href=https://taction.top/dapr/index.xml>
+<meta name=ROBOTS content="NOINDEX, NOFOLLOW">
 <link rel="shortcut icon" href=/favicons/favicon.ico>
 <link rel=apple-touch-icon href=/favicons/apple-touch-icon-180x180.png sizes=180x180>
 <link rel=icon type=image/png href=/favicons/favicon-16x16.png sizes=16x16>
@@ -13,40 +14,20 @@
 <link rel=icon type=image/png href=/favicons/android-96x96.png sizes=96x96>
 <link rel=icon type=image/png href=/favicons/android-144x144.png sizes=144x144>
 <link rel=icon type=image/png href=/favicons/android-192x192.png sizes=192x192>
-<title>Knative Demo | Taction's Blog</title>
-<meta name=description content><meta property="og:title" content="Knative Demo">
-<meta property="og:description" content="概述 经过前面的介绍，可以发现revision资源是整个流程的核心。那么在不对当前deployment部署托管的情况下。修改revision引用指定的deployment，那么在接受可以对deployment进行有限修改的情况下。就可以直接创建一个revision，让deployment自动获得对应的自动扩缩容的能力。从事后来看，通过这种方式，只需要对deployment增加一个revision name的label以及注入代理pod的修改就够了。通过这种修改方式，ksvc、configuration、route资源就可以弃用了。
-本文以以上案例修改的形式，促进对knative各个组件的了解。在目前的流程中deployment是由revision创建的。如果deployment是手动创建的，并且已经为deployment注入了queue容器和添加了revision的label。修改revision将其改为引用deployment。接下来看看我们需要为之适配修改哪些内容。
-如何开发 在hack文件夹下是一些列辅助开发的脚本。对于接下来的例子，会用到其中update-codegen.sh 这个脚本来更新自动生成的k8s client代码文件。对于k8s 自定义controller开发来说，这是一个非常常见的行为。
-CRD修改增加引用 由于此次的修改目标是revision，所以首先找到revision crd 定义的地方，pkg/apis/serving/v1/revision_types.go由于引用的ref结构在podautoscaler中有，所以我们直接拷贝过来就可以，
-Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
-// RevisionSpec holds the desired state of the Revision (from the client). type RevisionSpec struct { corev1.PodSpec `json:&#34;,inline&#34;` // ContainerConcurrency specifies the maximum allowed in-flight (concurrent)  // requests per container of the Revision. Defaults to `0` which means  // concurrency to the application is not limited, and the system decides the  // target concurrency for the autoscaler.">
-<meta property="og:type" content="article">
-<meta property="og:url" content="https://taction.top/serverless/platform/knative-demo/"><meta property="article:section" content="serverless">
-<meta property="article:published_time" content="2021-12-01T15:50:12+08:00">
-<meta property="article:modified_time" content="2021-12-01T15:50:12+08:00">
-<meta itemprop=name content="Knative Demo">
-<meta itemprop=description content="概述 经过前面的介绍，可以发现revision资源是整个流程的核心。那么在不对当前deployment部署托管的情况下。修改revision引用指定的deployment，那么在接受可以对deployment进行有限修改的情况下。就可以直接创建一个revision，让deployment自动获得对应的自动扩缩容的能力。从事后来看，通过这种方式，只需要对deployment增加一个revision name的label以及注入代理pod的修改就够了。通过这种修改方式，ksvc、configuration、route资源就可以弃用了。
-本文以以上案例修改的形式，促进对knative各个组件的了解。在目前的流程中deployment是由revision创建的。如果deployment是手动创建的，并且已经为deployment注入了queue容器和添加了revision的label。修改revision将其改为引用deployment。接下来看看我们需要为之适配修改哪些内容。
-如何开发 在hack文件夹下是一些列辅助开发的脚本。对于接下来的例子，会用到其中update-codegen.sh 这个脚本来更新自动生成的k8s client代码文件。对于k8s 自定义controller开发来说，这是一个非常常见的行为。
-CRD修改增加引用 由于此次的修改目标是revision，所以首先找到revision crd 定义的地方，pkg/apis/serving/v1/revision_types.go由于引用的ref结构在podautoscaler中有，所以我们直接拷贝过来就可以，
-Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
-// RevisionSpec holds the desired state of the Revision (from the client). type RevisionSpec struct { corev1.PodSpec `json:&#34;,inline&#34;` // ContainerConcurrency specifies the maximum allowed in-flight (concurrent)  // requests per container of the Revision. Defaults to `0` which means  // concurrency to the application is not limited, and the system decides the  // target concurrency for the autoscaler."><meta itemprop=datePublished content="2021-12-01T15:50:12+08:00">
-<meta itemprop=dateModified content="2021-12-01T15:50:12+08:00">
-<meta itemprop=wordCount content="245">
-<meta itemprop=keywords content><meta name=twitter:card content="summary">
-<meta name=twitter:title content="Knative Demo">
-<meta name=twitter:description content="概述 经过前面的介绍，可以发现revision资源是整个流程的核心。那么在不对当前deployment部署托管的情况下。修改revision引用指定的deployment，那么在接受可以对deployment进行有限修改的情况下。就可以直接创建一个revision，让deployment自动获得对应的自动扩缩容的能力。从事后来看，通过这种方式，只需要对deployment增加一个revision name的label以及注入代理pod的修改就够了。通过这种修改方式，ksvc、configuration、route资源就可以弃用了。
-本文以以上案例修改的形式，促进对knative各个组件的了解。在目前的流程中deployment是由revision创建的。如果deployment是手动创建的，并且已经为deployment注入了queue容器和添加了revision的label。修改revision将其改为引用deployment。接下来看看我们需要为之适配修改哪些内容。
-如何开发 在hack文件夹下是一些列辅助开发的脚本。对于接下来的例子，会用到其中update-codegen.sh 这个脚本来更新自动生成的k8s client代码文件。对于k8s 自定义controller开发来说，这是一个非常常见的行为。
-CRD修改增加引用 由于此次的修改目标是revision，所以首先找到revision crd 定义的地方，pkg/apis/serving/v1/revision_types.go由于引用的ref结构在podautoscaler中有，所以我们直接拷贝过来就可以，
-Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
-// RevisionSpec holds the desired state of the Revision (from the client). type RevisionSpec struct { corev1.PodSpec `json:&#34;,inline&#34;` // ContainerConcurrency specifies the maximum allowed in-flight (concurrent)  // requests per container of the Revision. Defaults to `0` which means  // concurrency to the application is not limited, and the system decides the  // target concurrency for the autoscaler.">
+<title>dapr | Taction's Blog</title>
+<meta name=description content><meta property="og:title" content="dapr">
+<meta property="og:description" content>
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://taction.top/dapr/">
+<meta itemprop=name content="dapr">
+<meta itemprop=description content><meta name=twitter:card content="summary">
+<meta name=twitter:title content="dapr">
+<meta name=twitter:description content>
 <link rel=preload href=/scss/main.min.7deef606a7f12d3311a44ac414730e6af0a760f211628cf17f32e0fbcf9a06e9.css as=style>
 <link href=/scss/main.min.7deef606a7f12d3311a44ac414730e6af0a760f211628cf17f32e0fbcf9a06e9.css rel=stylesheet integrity>
 <script src=https://code.jquery.com/jquery-3.5.1.min.js integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin=anonymous></script>
 </head>
-<body class=td-page>
+<body class=td-section>
 <header>
 <nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
 <a class=navbar-brand href=/>
@@ -104,11 +85,11 @@ Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
 </ul>
 <ul class="td-sidebar-nav__section pr-md-3">
 <li class=td-sidebar-nav__section-title>
-<a href=/serverless/platform/ class="align-left pl-0 pr-2 active td-sidebar-link td-sidebar-link__section">platform</a>
+<a href=/serverless/platform/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">platform</a>
 </li>
 <ul>
 <li class="collapse show" id=serverlessplatform>
-<a class="td-sidebar-link td-sidebar-link__page active" id=m-serverlessplatformknative-demo href=/serverless/platform/knative-demo/>Knative Demo</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-demo href=/serverless/platform/knative-demo/>Knative Demo</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-queue href=/serverless/platform/knative-queue/>Knative Queue</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-scalefrom0 href=/serverless/platform/knative-scalefrom0/>Knative Scalefrom0</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-crd href=/serverless/platform/knative-crd/>Knative Crd</a>
@@ -143,7 +124,7 @@ Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
 </ul>
 <ul class="td-sidebar-nav__section pr-md-3">
 <li class=td-sidebar-nav__section-title>
-<a href=/dapr/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">dapr</a>
+<a href=/dapr/ class="align-left pl-0 pr-2 active td-sidebar-link td-sidebar-link__section">dapr</a>
 </li>
 <ul>
 <li class="collapse show" id=dapr>
@@ -169,103 +150,21 @@ Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
 <div class="d-none d-xl-block col-xl-2 td-toc d-print-none">
 <div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
 </div>
-<nav id=TableOfContents>
-<ul>
-<li>
-<ul>
-<li><a href=#概述>概述</a></li>
-<li><a href=#crd修改增加引用>CRD修改增加引用</a></li>
-<li><a href=#引用模式下不创建deployment>引用模式下不创建deployment</a></li>
-</ul>
-</li>
-</ul>
-</nav>
 </div>
 <main class="col-12 col-md-9 col-xl-8 pl-md-5" role=main>
 <nav aria-label=breadcrumb class="d-none d-md-block d-print-none">
 <ol class="breadcrumb spb-1">
-<li class=breadcrumb-item>
-<a href=https://taction.top/serverless/>serverless</a>
-</li>
-<li class=breadcrumb-item>
-<a href=https://taction.top/serverless/platform/>platform</a>
-</li>
 <li class="breadcrumb-item active" aria-current=page>
-<a href=https://taction.top/serverless/platform/knative-demo/>Knative Demo</a>
+<a href=https://taction.top/dapr/>dapr</a>
 </li>
 </ol>
 </nav>
 <div class=td-content>
-<h1>Knative Demo</h1>
-<h3 id=概述>概述</h3>
-<p>经过前面的介绍，可以发现revision资源是整个流程的核心。那么在不对当前deployment部署托管的情况下。修改revision引用指定的deployment，那么在接受可以对deployment进行有限修改的情况下。就可以直接创建一个revision，让deployment自动获得对应的自动扩缩容的能力。从事后来看，通过这种方式，只需要对deployment增加一个revision name的label以及注入代理pod的修改就够了。通过这种修改方式，ksvc、configuration、route资源就可以弃用了。</p>
-<p>本文以以上案例修改的形式，促进对knative各个组件的了解。在目前的流程中deployment是由revision创建的。如果deployment是手动创建的，并且已经为deployment注入了queue容器和添加了revision的label。修改revision将其改为引用deployment。接下来看看我们需要为之适配修改哪些内容。</p>
-<p><img src=https://image-1255620078.cos.ap-nanjing.myqcloud.com/image-20211202192729680.png alt=image-20211202192729680></p>
-<h4 id=如何开发>如何开发</h4>
-<p>在<a href=https://github.com/knative/serving/tree/main/hack>hack</a>文件夹下是一些列辅助开发的脚本。对于接下来的例子，会用到其中<code>update-codegen.sh</code> 这个脚本来更新自动生成的k8s client代码文件。对于k8s 自定义controller开发来说，这是一个非常常见的行为。</p>
-<h3 id=crd修改增加引用>CRD修改增加引用</h3>
-<p>由于此次的修改目标是revision，所以首先找到revision crd 定义的地方，<code>pkg/apis/serving/v1/revision_types.go</code>由于引用的ref结构在podautoscaler中有，所以我们直接拷贝过来就可以，</p>
-<p>Revisioin spec 如下所示，增加了<code>ScaleTargetRef</code>的引用。</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// RevisionSpec holds the desired state of the Revision (from the client).
-</span><span style=color:#75715e></span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>RevisionSpec</span> <span style=color:#66d9ef>struct</span> {
-   <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>PodSpec</span> <span style=color:#e6db74>`json:&#34;,inline&#34;`</span>
-
-   <span style=color:#75715e>// ContainerConcurrency specifies the maximum allowed in-flight (concurrent)
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// requests per container of the Revision.  Defaults to `0` which means
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// concurrency to the application is not limited, and the system decides the
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// target concurrency for the autoscaler.
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// +optional
-</span><span style=color:#75715e></span>   <span style=color:#a6e22e>ContainerConcurrency</span> <span style=color:#f92672>*</span><span style=color:#66d9ef>int64</span> <span style=color:#e6db74>`json:&#34;containerConcurrency,omitempty&#34;`</span>
-
-   <span style=color:#75715e>// ScaleTargetRef defines the /scale-able resource that this Revision
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// is responsible for quickly right-sizing. If containers is an empty array
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// and ScaleTargetRef is defined, will not create a container.
-</span><span style=color:#75715e></span>   <span style=color:#a6e22e>ScaleTargetRef</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>ObjectReference</span> <span style=color:#e6db74>`json:&#34;scaleTargetRef,omitempty&#34;`</span>
-
-   <span style=color:#75715e>// TimeoutSeconds is the maximum duration in seconds that the request routing
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// layer will wait for a request delivered to a container to begin replying
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// (send network traffic). If unspecified, a system default will be provided.
-</span><span style=color:#75715e></span>   <span style=color:#75715e>// +optional
-</span><span style=color:#75715e></span>   <span style=color:#a6e22e>TimeoutSeconds</span> <span style=color:#f92672>*</span><span style=color:#66d9ef>int64</span> <span style=color:#e6db74>`json:&#34;timeoutSeconds,omitempty&#34;`</span>
-}
-</code></pre></div><p>改完之后，在执行完<code>./hack/update-codegen.sh</code>之后，你会发现在创建带有scaleTargetRef的revision的时候在创建时被拒绝了，这是因为前面说到的webhook校验逻辑造成的。那么针对这个修改还需要在<code>pkg/apis/serving/v1/revision_validation.go</code>文件中修改校验逻辑,如果定义了<code>scaleTargetRef</code>那么就校验<code>scaleTargetRef</code>定义合法性，而不对<code>PodSpec</code>部分进行校验允许不定义此部分内容。</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Validate implements apis.Validatable
-</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>rs</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>RevisionSpec</span>) <span style=color:#a6e22e>Validate</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#f92672>*</span><span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>FieldError</span> {
-	<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>errs</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>apis</span>.<span style=color:#a6e22e>FieldError</span>
-
-	<span style=color:#75715e>// If ScaleTargetRef appears, pod spec will not be used
-</span><span style=color:#75715e></span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>rs</span>.<span style=color:#a6e22e>ScaleTargetRef</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
-		<span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>serving</span>.<span style=color:#a6e22e>ValidateNamespacedObjectReference</span>(<span style=color:#a6e22e>rs</span>.<span style=color:#a6e22e>ScaleTargetRef</span>).
-			<span style=color:#a6e22e>ViaField</span>(<span style=color:#e6db74>&#34;scaleTargetRef&#34;</span>)
-	} <span style=color:#66d9ef>else</span> {
-		<span style=color:#a6e22e>errs</span> = <span style=color:#a6e22e>serving</span>.<span style=color:#a6e22e>ValidatePodSpec</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>rs</span>.<span style=color:#a6e22e>PodSpec</span>)
-	}
-	<span style=color:#75715e>// ......
-</span><span style=color:#75715e></span>}
-</code></pre></div><p>在修改完之后就可以创建带有引用的crd了。但是这个crd并不能按预期行为进行，因为我们将pod定义改成了deployment的ref引用。接下来要修改的就是controller的行为，使其在引用dp的模式下不再创建deployment。</p>
-<h3 id=引用模式下不创建deployment>引用模式下不创建deployment</h3>
-<p>前面说到过对于这个crd的修改会在<code>pkg/reconciler/revision</code>中，首先查找到<code>ReconcileKind</code>函数在<code>pkg/reconciler/revision/revision.go</code>文件中，通过对这个函数的查看找到创建deployment的逻辑函数是在<code>pkg/reconciler/revision/reconcile_resources.go</code>文件中的<code>reconcileDeployment</code>函数，只需要修改在存在ref的时候不再创建dp就可以。</p>
-<p>另外还需要找到创建<code>PodAutoscaler</code>部分，修改引用注入的方式，去掉其他无关代码，就是如果revision设置了引用那么就将<code>PodAutoscaler</code>的引用设置为引用。</p>
-<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>MakePA</span>(<span style=color:#a6e22e>rev</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Revision</span>) <span style=color:#f92672>*</span><span style=color:#a6e22e>autoscalingv1alpha1</span>.<span style=color:#a6e22e>PodAutoscaler</span> {
-   <span style=color:#a6e22e>deploymentName</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>names</span>.<span style=color:#a6e22e>Deployment</span>(<span style=color:#a6e22e>rev</span>)
-   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>rev</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>ScaleTargetRef</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
-      <span style=color:#a6e22e>deploymentName</span> = <span style=color:#a6e22e>rev</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>ScaleTargetRef</span>.<span style=color:#a6e22e>Name</span>
-   }
-   <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>autoscalingv1alpha1</span>.<span style=color:#a6e22e>PodAutoscaler</span>{
-      <span style=color:#a6e22e>Spec</span>: <span style=color:#a6e22e>autoscalingv1alpha1</span>.<span style=color:#a6e22e>PodAutoscalerSpec</span>{
-         <span style=color:#a6e22e>ScaleTargetRef</span>: <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>ObjectReference</span>{
-            <span style=color:#a6e22e>APIVersion</span>: <span style=color:#e6db74>&#34;apps/v1&#34;</span>,
-            <span style=color:#a6e22e>Kind</span>:       <span style=color:#e6db74>&#34;Deployment&#34;</span>,
-            <span style=color:#a6e22e>Name</span>:       <span style=color:#a6e22e>deploymentName</span>,
-         },
-      },
-   }
-}
-</code></pre></div><h4 id=小脑洞>小脑洞</h4>
-<p>固定的配置通常难以估计出一个服务正常的流量限制，而自适应限流通常都是计算服务的一个理想时延带宽比。假设以BBR为例，计算服务在满负载下的请求带宽时延，反向估算出服务的最大通行TPS，然后以这个TPS为阈值进行扩容计算。感觉可能有机会自适应扩容。</p>
-<p>knative跟service mesh的结合目前还是各成体系，只是能工作在一起，但是不能相互成就。最起码自适应限流的信号是可以流入knative控制信号的。</p>
-<p>这部分代码修改可以在<a href=https://github.com/Taction/serving/tree/feat_route_ref>feat_route_ref</a>分支上看到。此分支基于knative 0.26版本修改。</p>
-<h5 id=后记>后记</h5>
+<h1>dapr</h1>
+<p>dapr源码、使用以及原理介绍</p>
+<div class=section-index>
+<hr class=panel-line>
+</div>
 <div class="text-muted mt-5 pt-3 border-top">
 </div>
 </div>
