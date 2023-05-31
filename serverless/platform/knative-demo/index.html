@@ -42,8 +42,8 @@ Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
 CRD修改增加引用 由于此次的修改目标是revision，所以首先找到revision crd 定义的地方，pkg/apis/serving/v1/revision_types.go由于引用的ref结构在podautoscaler中有，所以我们直接拷贝过来就可以，
 Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
 // RevisionSpec holds the desired state of the Revision (from the client). type RevisionSpec struct { corev1.PodSpec `json:&#34;,inline&#34;` // ContainerConcurrency specifies the maximum allowed in-flight (concurrent)  // requests per container of the Revision. Defaults to `0` which means  // concurrency to the application is not limited, and the system decides the  // target concurrency for the autoscaler.">
-<link rel=preload href=/scss/main.min.7deef606a7f12d3311a44ac414730e6af0a760f211628cf17f32e0fbcf9a06e9.css as=style>
-<link href=/scss/main.min.7deef606a7f12d3311a44ac414730e6af0a760f211628cf17f32e0fbcf9a06e9.css rel=stylesheet integrity>
+<link rel=preload href=/scss/main.min.d0ef8007e3f54ea50c7a7c0f487de724ddd6f1ac8420892cb2e87e4cd9c470c6.css as=style>
+<link href=/scss/main.min.d0ef8007e3f54ea50c7a7c0f487de724ddd6f1ac8420892cb2e87e4cd9c470c6.css rel=stylesheet integrity>
 <script src=https://code.jquery.com/jquery-3.5.1.min.js integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin=anonymous></script>
 </head>
 <body class=td-page>
@@ -79,6 +79,8 @@ Revisioin spec 如下所示，增加了ScaleTargetRef的引用。
 <ul>
 <li class="collapse show" id=dapr>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-daprdebug-dapr-k8s href=/dapr/debug-dapr-k8s/>Debug Dapr In K8s</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-daprdeploying-pluggable-k8s href=/dapr/deploying-pluggable-k8s/>Deploying Pluggable K8s</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-daprpluggable-component href=/dapr/pluggable-component/>Pluggable Component</a>
 </li>
 </ul>
 </ul>

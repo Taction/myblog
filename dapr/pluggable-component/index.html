@@ -1,0 +1,1227 @@
+<!doctype html><html lang=en class=no-js>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name=generator content="Hugo 0.88.1"><meta name=ROBOTS content="NOINDEX, NOFOLLOW">
+<link rel="shortcut icon" href=/favicons/favicon.ico>
+<link rel=apple-touch-icon href=/favicons/apple-touch-icon-180x180.png sizes=180x180>
+<link rel=icon type=image/png href=/favicons/favicon-16x16.png sizes=16x16>
+<link rel=icon type=image/png href=/favicons/favicon-32x32.png sizes=32x32>
+<link rel=icon type=image/png href=/favicons/android-36x36.png sizes=36x36>
+<link rel=icon type=image/png href=/favicons/android-48x48.png sizes=48x48>
+<link rel=icon type=image/png href=/favicons/android-72x72.png sizes=72x72>
+<link rel=icon type=image/png href=/favicons/android-96x96.png sizes=96x96>
+<link rel=icon type=image/png href=/favicons/android-144x144.png sizes=144x144>
+<link rel=icon type=image/png href=/favicons/android-192x192.png sizes=192x192>
+<title>Pluggable Component | Taction's Blog</title>
+<meta name=description content><meta property="og:title" content="Pluggable Component">
+<meta property="og:description" content="本文主要从dapr运行时、SDK和部署3部分的源码来介绍dapr的Pluggable component
+dapr运行时 Pluggable 组件自动发现机制 Dapr在实例化一个组件的时候通过type+version来唯一确定一个组件的类型，那么如何向Dapr配置pluggable组件呢。Dapr在启动时会进行组件的自动发现，由于dapr与Pluggable 组件仅通过UDS进行通信，所以Dapr对配置的UDS文件夹路径进行扫描，查找所有的UDS，将其文件名作为组件类型。以下是具体代码。
+initPluggableComponents是Pluggable 组件自动发现的入口，在initRuntime中被调用。
+// initPluggableComponents discover pluggable components and initialize with their respective registries. func (a *DaprRuntime) initPluggableComponents() { if runtime.GOOS == &#34;windows&#34; { log.Debugf(&#34;the current OS does not support pluggable components feature, skipping initialization&#34;) return } if err := pluggable.Discover(a.ctx); err != nil { log.Errorf(&#34;could not initialize pluggable components %v&#34;, err) } } Discover函数从componentsSocketPath下面发现文件，根据文件mode判断是否是Unix domain socket。这也是dapr文档里提到为什么一定需要pluggable component先启动的原因。然后通过注册的callbackFunc func(name string, dialer GRPCConnectionDialer)向DefaultRegistry来注册对应component的初始化函数。其他内置的组件也会在初始化的时候注册初始化函数，因此在注册完成后运行时对组件的处理上就“一视同仁”了。
+// Discover discover the pluggable components and callback the service discovery with the given component name and grpc dialer.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://taction.top/dapr/pluggable-component/"><meta property="article:section" content="dapr">
+<meta property="article:published_time" content="2023-03-07T21:09:38+08:00">
+<meta property="article:modified_time" content="2023-03-07T21:09:38+08:00">
+<meta itemprop=name content="Pluggable Component">
+<meta itemprop=description content="本文主要从dapr运行时、SDK和部署3部分的源码来介绍dapr的Pluggable component
+dapr运行时 Pluggable 组件自动发现机制 Dapr在实例化一个组件的时候通过type+version来唯一确定一个组件的类型，那么如何向Dapr配置pluggable组件呢。Dapr在启动时会进行组件的自动发现，由于dapr与Pluggable 组件仅通过UDS进行通信，所以Dapr对配置的UDS文件夹路径进行扫描，查找所有的UDS，将其文件名作为组件类型。以下是具体代码。
+initPluggableComponents是Pluggable 组件自动发现的入口，在initRuntime中被调用。
+// initPluggableComponents discover pluggable components and initialize with their respective registries. func (a *DaprRuntime) initPluggableComponents() { if runtime.GOOS == &#34;windows&#34; { log.Debugf(&#34;the current OS does not support pluggable components feature, skipping initialization&#34;) return } if err := pluggable.Discover(a.ctx); err != nil { log.Errorf(&#34;could not initialize pluggable components %v&#34;, err) } } Discover函数从componentsSocketPath下面发现文件，根据文件mode判断是否是Unix domain socket。这也是dapr文档里提到为什么一定需要pluggable component先启动的原因。然后通过注册的callbackFunc func(name string, dialer GRPCConnectionDialer)向DefaultRegistry来注册对应component的初始化函数。其他内置的组件也会在初始化的时候注册初始化函数，因此在注册完成后运行时对组件的处理上就“一视同仁”了。
+// Discover discover the pluggable components and callback the service discovery with the given component name and grpc dialer."><meta itemprop=datePublished content="2023-03-07T21:09:38+08:00">
+<meta itemprop=dateModified content="2023-03-07T21:09:38+08:00">
+<meta itemprop=wordCount content="3274">
+<meta itemprop=keywords content><meta name=twitter:card content="summary">
+<meta name=twitter:title content="Pluggable Component">
+<meta name=twitter:description content="本文主要从dapr运行时、SDK和部署3部分的源码来介绍dapr的Pluggable component
+dapr运行时 Pluggable 组件自动发现机制 Dapr在实例化一个组件的时候通过type+version来唯一确定一个组件的类型，那么如何向Dapr配置pluggable组件呢。Dapr在启动时会进行组件的自动发现，由于dapr与Pluggable 组件仅通过UDS进行通信，所以Dapr对配置的UDS文件夹路径进行扫描，查找所有的UDS，将其文件名作为组件类型。以下是具体代码。
+initPluggableComponents是Pluggable 组件自动发现的入口，在initRuntime中被调用。
+// initPluggableComponents discover pluggable components and initialize with their respective registries. func (a *DaprRuntime) initPluggableComponents() { if runtime.GOOS == &#34;windows&#34; { log.Debugf(&#34;the current OS does not support pluggable components feature, skipping initialization&#34;) return } if err := pluggable.Discover(a.ctx); err != nil { log.Errorf(&#34;could not initialize pluggable components %v&#34;, err) } } Discover函数从componentsSocketPath下面发现文件，根据文件mode判断是否是Unix domain socket。这也是dapr文档里提到为什么一定需要pluggable component先启动的原因。然后通过注册的callbackFunc func(name string, dialer GRPCConnectionDialer)向DefaultRegistry来注册对应component的初始化函数。其他内置的组件也会在初始化的时候注册初始化函数，因此在注册完成后运行时对组件的处理上就“一视同仁”了。
+// Discover discover the pluggable components and callback the service discovery with the given component name and grpc dialer.">
+<link rel=preload href=/scss/main.min.d0ef8007e3f54ea50c7a7c0f487de724ddd6f1ac8420892cb2e87e4cd9c470c6.css as=style>
+<link href=/scss/main.min.d0ef8007e3f54ea50c7a7c0f487de724ddd6f1ac8420892cb2e87e4cd9c470c6.css rel=stylesheet integrity>
+<script src=https://code.jquery.com/jquery-3.5.1.min.js integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin=anonymous></script>
+</head>
+<body class=td-page>
+<header>
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+<a class=navbar-brand href=/>
+<span class=navbar-logo><svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 500 500" style="enable-background:new 0 0 500 500"><g><path style="fill:#fff" d="M116.8525 421.9722c-5.7041.0-10.3442-4.3127-10.3442-9.6129V88.183c0-5.3002 4.6401-9.6117 10.3442-9.6117H320.858c3.0347.0 9.3959.5498 11.7506 2.6302l.3545.3442 58.905 63.2912c2.3101 2.491 2.9202 8.4928 2.9202 11.3184v256.2039c0 5.3002-4.6407 9.6129-10.3436 9.6129H116.8525z"/><g><g><g><path style="fill:#767676" d="M384.4445 423.2066H116.852c-6.3839.0-11.5786-4.8658-11.5786-10.8474V88.1831c0-5.9804 5.1947-10.8461 11.5786-10.8461h204.0062c.377.0 9.2786.0329 12.568 2.9389l.3947.3833 58.9508 63.337c3.2135 3.4652 3.2514 11.7924 3.2514 12.1593v256.2036C396.0231 418.3408 390.8284 423.2066 384.4445 423.2066zM116.5079 411.9189c.0848.0278.1999.0531.3441.0531h267.5925c.1442.0.2581-.0253.3441-.0531V156.1556c-.0076-.9033-.3593-3.7347-.7034-5.0037l-57.6527-61.9416c-1.4651-.3176-4.4533-.6389-5.5742-.6389H116.852c-.143.0-.2594.024-.3441.0531V411.9189zm267.4533-261.149zM327.0321 89.371v.0013V89.371z"/></g></g></g><g><g><path style="fill:#5b7fc0" d="M189.0874 210.1754l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.025 2.454-11.4897 6.4116-15.4473C177.5953 212.627 183.0601 210.1742 189.0874 210.1754zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403S197.0816 234.1722 197.0804 232.033z"/><path style="opacity:.3;fill:#fff" d="M189.0898 210.176c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 212.6276 183.0612 210.176 189.0898 210.176zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 236.239 197.0839 234.2399 197.0839 232.0372z"/><g><defs><path id="SVGID_1_" d="M194.7376 237.6875c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.999 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 234.2399 196.1861 236.239 194.7376 237.6875z"/></defs><clipPath id="SVGID_2_"><use xlink:href="#SVGID_1_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_2_);fill:#fff" d="M190.0704 225.0237c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 225.7247 191.9774 225.0237 190.0704 225.0237z"/><path style="opacity:.13;clip-path:url(#SVGID_2_);fill:#020202" d="M190.0704 225.0237c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 225.7247 191.9774 225.0237 190.0704 225.0237z"/></g><g><defs><path id="SVGID_3_" d="M189.0898 210.176c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 212.6276 183.0612 210.176 189.0898 210.176zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 236.239 197.0839 234.2399 197.0839 232.0372z"/></defs><clipPath id="SVGID_4_"><use xlink:href="#SVGID_3_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_4_);fill:#5b7fc0" d="M172.6595 215.6045c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8612 12.0547.0024 21.8636-9.797 21.8613-21.8612.0024-3.8475-1.0151-7.6326-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 209.1953 176.6171 211.647 172.6595 215.6045z"/></g></g><rect x="198.8952" y="225.1043" style="fill:#5b7fc0" width="122.6266" height="13.8671"/></g><g><path style="fill:#d95140" d="M189.0874 155.7611l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.0249 2.454-11.4897 6.4116-15.4473C177.5953 158.2128 183.0601 155.7599 189.0874 155.7611zm7.993 21.8577c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403C196.2508 181.7667 197.0816 179.758 197.0804 177.6188z"/><path style="opacity:.3;fill:#fff" d="M189.0898 155.7617c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 158.2134 183.0612 155.7617 189.0898 155.7617zm7.9941 21.8613c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 181.8248 197.0839 179.8256 197.0839 177.623z"/><g><defs><path id="SVGID_5_" d="M194.7376 183.2733c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.9989 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 179.8256 196.1861 181.8248 194.7376 183.2733z"/></defs><clipPath id="SVGID_6_"><use xlink:href="#SVGID_5_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_6_);fill:#fff" d="M190.0704 170.6095c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 171.3104 191.9774 170.6095 190.0704 170.6095z"/><path style="opacity:.13;clip-path:url(#SVGID_6_);fill:#020202" d="M190.0704 170.6095c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9546.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.663-2.8588-6.116.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C193.7885 171.3104 191.9774 170.6095 190.0704 170.6095z"/></g><g><defs><path id="SVGID_7_" d="M189.0898 155.7617c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8066-21.8612-21.8613.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 158.2134 183.0612 155.7617 189.0898 155.7617zm7.9941 21.8613c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 181.8248 197.0839 179.8256 197.0839 177.623z"/></defs><clipPath id="SVGID_8_"><use xlink:href="#SVGID_7_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_8_);fill:#d95140" d="M172.6595 161.1903c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8613 12.0547.0024 21.8636-9.797 21.8613-21.8613.0024-3.8474-1.0151-7.6326-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 154.7811 176.6171 157.2327 172.6595 161.1903z"/></g><rect x="198.8952" y="170.69" style="fill:#d95140" width="122.6266" height="13.8671"/></g><g><g><path style="fill:#56a55c" d="M189.5379 264.6147l.0012-.0012c7.7751.0012 15.0294 4.1862 18.932 10.9235 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3304-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032-5.8394.0-11.3281-2.2733-15.458-6.4032-4.13-4.13-6.4032-9.6186-6.4056-15.4628.0012-6.0249 2.454-11.4897 6.4116-15.4472C178.0458 267.0663 183.5105 264.6135 189.5379 264.6147zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6538 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403C196.7013 290.6202 197.5321 288.6115 197.5309 286.4723z"/><path style="opacity:.3;fill:#fff" d="M189.5403 264.6153c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8065-21.8612-21.8613.0-6.0285 2.4516-11.492 6.4116-15.452C178.0482 267.0669 183.5117 264.6153 189.5403 264.6153zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.6366 290.6783 197.5344 288.6792 197.5344 286.4765z"/><g><defs><path id="SVGID_9_" d="M195.1881 292.1268c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.9989 7.9942-7.9941 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.5344 288.6792 196.6366 290.6783 195.1881 292.1268z"/></defs><clipPath id="SVGID_10_"><use xlink:href="#SVGID_9_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_10_);fill:#fff" d="M190.5209 279.463c-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7446-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9941 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C194.239 280.164 192.4279 279.463 190.5209 279.463z"/><path style="opacity:.13;clip-path:url(#SVGID_10_);fill:#020202" d="M190.5209 279.463c-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7446-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9941 2.3802-1e-4 4.616 1.0833 6.1218 2.8788C194.239 280.164 192.4279 279.463 190.5209 279.463z"/></g><g><defs><path id="SVGID_11_" d="M189.5403 264.6153c7.7763.0 15.0283 4.1826 18.926 10.9151 1.9201 3.3135 2.9377 7.0987 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8613-12.0547.0024-21.8636-9.8065-21.8612-21.8613.0-6.0285 2.4516-11.492 6.4116-15.452C178.0482 267.0669 183.5117 264.6153 189.5403 264.6153zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9941.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.6366 290.6783 197.5344 288.6792 197.5344 286.4765z"/></defs><clipPath id="SVGID_12_"><use xlink:href="#SVGID_11_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_12_);fill:#56a55c" d="M173.11 270.0439c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8613 12.0547.0024 21.8636-9.797 21.8613-21.8613.0024-3.8474-1.0151-7.6326-2.9353-10.9462-3.8977-6.7325-11.1497-10.9151-18.926-10.9151C182.5311 263.6346 177.0676 266.0863 173.11 270.0439z"/></g></g><rect x="199.3456" y="279.5436" style="fill:#56a55c" width="122.6266" height="13.8671"/></g><g><g><path style="fill:#f1bc42" d="M189.0874 318.7208l.0012-.0012c7.7751.0012 15.0295 4.1862 18.932 10.9234 1.9177 3.3159 2.9305 7.1011 2.9293 10.9378.0 5.8394-2.2733 11.3305-6.4032 15.4604-4.1288 4.1288-9.6186 6.4032-15.458 6.4032s-11.328-2.2733-15.458-6.4032-6.4032-9.6186-6.4056-15.4628c.0012-6.025 2.454-11.4897 6.4116-15.4472C177.5953 321.1724 183.0601 318.7196 189.0874 318.7208zm7.993 21.8576c.0012-1.4042-.3687-2.7868-1.063-3.9887-1.4293-2.4684-4.0833-3.9995-6.9299-4.0019-4.4077.0024-7.993 3.5877-7.993 7.993.0 2.1356.832 4.1431 2.3427 5.6539 1.5083 1.5083 3.5159 2.3403 5.6503 2.3415 2.1356.0 4.1443-.8308 5.6539-2.3403S197.0816 342.7176 197.0804 340.5784z"/><path style="opacity:.3;fill:#fff" d="M189.0898 318.7214c7.7763.0 15.0283 4.1826 18.926 10.915 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8612-12.0547.0024-21.8636-9.8065-21.8612-21.8612.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 321.173 183.0612 318.7214 189.0898 318.7214zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 344.7844 197.0839 342.7853 197.0839 340.5826z"/><g><defs><path id="SVGID_13_" d="M194.7376 346.2329c-1.4461 1.4461-3.4452 2.3439-5.6479 2.3439-4.4077-.0024-7.9918-3.5865-7.9942-7.9942.0024-4.4125 3.5937-7.999 7.9942-7.9942 2.8443.0 5.497 1.5323 6.924 3.9983.6991 1.2067 1.0702 2.5881 1.0702 3.9959C197.0839 342.7853 196.1861 344.7844 194.7376 346.2329z"/></defs><clipPath id="SVGID_14_"><use xlink:href="#SVGID_13_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_14_);fill:#fff" d="M190.0704 333.5691c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0834 6.1218 2.8788C193.7885 334.2701 191.9774 333.5691 190.0704 333.5691z"/><path style="opacity:.13;clip-path:url(#SVGID_14_);fill:#020202" d="M190.0704 333.5691c-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0011 1.9547.7088 3.7452 1.8782 5.1354-1.7447-1.4674-2.8575-3.6631-2.8588-6.1161.0024-4.4125 3.5936-7.999 7.9942-7.9942 2.3802-1e-4 4.616 1.0834 6.1218 2.8788C193.7885 334.2701 191.9774 333.5691 190.0704 333.5691z"/></g><g><defs><path id="SVGID_15_" d="M189.0898 318.7214c7.7763.0 15.0283 4.1826 18.926 10.915 1.9201 3.3136 2.9377 7.0988 2.9353 10.9462.0024 12.0643-9.8065 21.8636-21.8613 21.8612-12.0547.0024-21.8636-9.8065-21.8612-21.8612.0-6.0285 2.4516-11.4921 6.4116-15.452C177.5977 321.173 183.0612 318.7214 189.0898 318.7214zm7.9941 21.8612c0-1.4078-.3711-2.7892-1.0702-3.9959-1.4269-2.466-4.0797-3.9983-6.924-3.9983-4.4005-.0048-7.9918 3.5817-7.9942 7.9942.0024 4.4077 3.5865 7.9918 7.9942 7.9942 2.2027.0 4.2018-.8978 5.6479-2.3439C196.1861 344.7844 197.0839 342.7853 197.0839 340.5826z"/></defs><clipPath id="SVGID_16_"><use xlink:href="#SVGID_15_" style="overflow:visible"/></clipPath><path style="clip-path:url(#SVGID_16_);fill:#f1bc42" d="M172.6595 324.15c-3.96 3.96-6.4116 9.4235-6.4116 15.452-.0024 12.0547 9.8066 21.8636 21.8613 21.8612 12.0547.0024 21.8636-9.797 21.8613-21.8612.0024-3.8474-1.0151-7.6327-2.9353-10.9462-3.8977-6.7324-11.1497-10.9151-18.926-10.9151C182.0806 317.7407 176.6171 320.1924 172.6595 324.15z"/></g></g><rect x="198.8952" y="333.6497" style="fill:#f1bc42" width="122.6266" height="13.8671"/></g></g></svg></span><span class=font-weight-bold>Taction's Blog</span>
+</a>
+<div class="td-navbar-nav-scroll ml-md-auto" id=main_navbar>
+<ul class="navbar-nav mt-2 mt-lg-0">
+</ul>
+</div>
+<div class="navbar-nav d-none d-lg-block">
+</div>
+</nav>
+</header>
+<div class="container-fluid td-outer">
+<div class=td-main>
+<div class="row flex-xl-nowrap">
+<div class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+<div id=td-sidebar-menu class=td-sidebar__inner>
+<nav class="collapse td-sidebar-nav pt-2 pl-4" id=td-section-nav>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section"></a>
+</li>
+<ul>
+<li class="collapse show">
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/dapr/ class="align-left pl-0 pr-2 active td-sidebar-link td-sidebar-link__section">dapr</a>
+</li>
+<ul>
+<li class="collapse show" id=dapr>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-daprdebug-dapr-k8s href=/dapr/debug-dapr-k8s/>Debug Dapr In K8s</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-daprdeploying-pluggable-k8s href=/dapr/deploying-pluggable-k8s/>Deploying Pluggable K8s</a>
+<a class="td-sidebar-link td-sidebar-link__page active" id=m-daprpluggable-component href=/dapr/pluggable-component/>Pluggable Component</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/spin/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">spin</a>
+</li>
+<ul>
+<li class="collapse show" id=spin>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-spinspin-up-sourcecode href=/spin/spin-up-sourcecode/>Spin up 源码分析</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-spinspin-introduction href=/spin/spin-introduction/>Spin介绍</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">serverless</a>
+</li>
+<ul>
+<li class="collapse show" id=serverless>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/webassembly/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">WebAssembly</a>
+</li>
+<ul>
+<li class="collapse show" id=serverlesswebassembly>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm2 href=/serverless/webassembly/wasm2/>相关项目分析</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblydockerwasmpreview href=/serverless/webassembly/dockerwasmpreview/>docker wasm preview 踩坑指北</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblymanage-wasm-using-docker href=/serverless/webassembly/manage-wasm-using-docker/>using docker manage wasm【译】</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlesswebassemblywasm1 href=/serverless/webassembly/wasm1/>wasm概述</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/serverless/platform/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">platform</a>
+</li>
+<ul>
+<li class="collapse show" id=serverlessplatform>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-demo href=/serverless/platform/knative-demo/>Knative Demo</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-queue href=/serverless/platform/knative-queue/>Knative Queue</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-scalefrom0 href=/serverless/platform/knative-scalefrom0/>Knative Scalefrom0</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-crd href=/serverless/platform/knative-crd/>Knative Crd</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformdebug-knative href=/serverless/platform/debug-knative/>Debug Knative</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-serverlessplatformknative-use href=/serverless/platform/knative-use/>Knative Use</a>
+</li>
+</ul>
+</ul>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/wasmcloud/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">wasmcloud</a>
+</li>
+<ul>
+<li class="collapse show" id=wasmcloud>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-wasmclouddapr-provider href=/wasmcloud/dapr-provider/>Dapr Provider</a>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-wasmclouda2acall href=/wasmcloud/a2acall/>Actor to Actor call</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/code/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">code</a>
+</li>
+<ul>
+<li class="collapse show" id=code>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-codeacpuquestion href=/code/acpuquestion/>sidecar cpu</a>
+</li>
+</ul>
+</ul>
+<ul class="td-sidebar-nav__section pr-md-3">
+<li class=td-sidebar-nav__section-title>
+<a href=/git/ class="align-left pl-0 pr-2 td-sidebar-link td-sidebar-link__section">Gits</a>
+</li>
+<ul>
+<li class="collapse show" id=git>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-gitdco-rebase href=/git/dco-rebase/>DCO Rebase</a>
+</li>
+</ul>
+</ul>
+</li>
+</ul>
+</ul>
+</nav>
+</div>
+</div>
+<div class="d-none d-xl-block col-xl-2 td-toc d-print-none">
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+</div>
+<nav id=TableOfContents>
+<ul>
+<li>
+<ul>
+<li><a href=#dapr运行时>dapr运行时</a></li>
+<li><a href=#sdk>SDK</a></li>
+<li><a href=#injector>Injector</a></li>
+</ul>
+</li>
+</ul>
+</nav>
+</div>
+<main class="col-12 col-md-9 col-xl-8 pl-md-5" role=main>
+<nav aria-label=breadcrumb class="d-none d-md-block d-print-none">
+<ol class="breadcrumb spb-1">
+<li class=breadcrumb-item>
+<a href=https://taction.top/dapr/>dapr</a>
+</li>
+<li class="breadcrumb-item active" aria-current=page>
+<a href=https://taction.top/dapr/pluggable-component/>Pluggable Component</a>
+</li>
+</ol>
+</nav>
+<div class=td-content>
+<h1>Pluggable Component</h1>
+<p>本文主要从dapr运行时、SDK和部署3部分的源码来介绍dapr的Pluggable component</p>
+<h3 id=dapr运行时>dapr运行时</h3>
+<h4 id=pluggable-组件自动发现机制>Pluggable 组件自动发现机制</h4>
+<p>Dapr在实例化一个组件的时候通过type+version来唯一确定一个组件的类型，那么如何向Dapr配置pluggable组件呢。Dapr在启动时会进行组件的自动发现，由于dapr与Pluggable 组件仅通过UDS进行通信，所以Dapr对配置的UDS文件夹路径进行扫描，查找所有的UDS，将其文件名作为组件类型。以下是具体代码。</p>
+<p><code>initPluggableComponents</code>是Pluggable 组件自动发现的入口，在initRuntime中被调用。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// initPluggableComponents discover pluggable components and initialize with their respective registries.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>a</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>DaprRuntime</span>) <span style=color:#a6e22e>initPluggableComponents</span>() {
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>GOOS</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;windows&#34;</span> {
+      <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Debugf</span>(<span style=color:#e6db74>&#34;the current OS does not support pluggable components feature, skipping initialization&#34;</span>)
+      <span style=color:#66d9ef>return</span>
+   }
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>pluggable</span>.<span style=color:#a6e22e>Discover</span>(<span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>ctx</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;could not initialize pluggable components %v&#34;</span>, <span style=color:#a6e22e>err</span>)
+   }
+}
+</code></pre></div><p><code>Discover</code>函数从<code>componentsSocketPath</code>下面发现文件，根据文件mode判断是否是Unix domain socket。这也是dapr文档里提到为什么一定需要pluggable component先启动的原因。然后通过注册的<code>callbackFunc func(name string, dialer GRPCConnectionDialer)</code>向<code>DefaultRegistry</code>来注册对应component的初始化函数。其他内置的组件也会在初始化的时候注册初始化函数，因此在注册完成后运行时对组件的处理上就“一视同仁”了。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Discover discover the pluggable components and callback the service discovery with the given component name and grpc dialer.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Discover</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#66d9ef>error</span> {
+   <span style=color:#a6e22e>services</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>serviceDiscovery</span>(<span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>socket</span> <span style=color:#66d9ef>string</span>) (<span style=color:#a6e22e>reflectServiceClient</span>, <span style=color:#66d9ef>func</span>(), <span style=color:#66d9ef>error</span>) {
+      <span style=color:#a6e22e>conn</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>SocketDial</span>(
+         <span style=color:#a6e22e>ctx</span>,
+         <span style=color:#a6e22e>socket</span>,
+         <span style=color:#a6e22e>grpc</span>.<span style=color:#a6e22e>WithBlock</span>(),
+      )
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+      }
+      <span style=color:#a6e22e>client</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>grpcreflect</span>.<span style=color:#a6e22e>NewClientV1Alpha</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>reflectpb</span>.<span style=color:#a6e22e>NewServerReflectionClient</span>(<span style=color:#a6e22e>conn</span>))
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>client</span>, <span style=color:#a6e22e>reflectServiceConnectionCloser</span>(<span style=color:#a6e22e>conn</span>, <span style=color:#a6e22e>client</span>), <span style=color:#66d9ef>nil</span>
+   })
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+	 <span style=color:#75715e>// 这里就是把自己注册到DefaultRegistry，从而在解析对应类型的组件的时候，可以获取对应的工厂
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>callback</span>(<span style=color:#a6e22e>services</span>)
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><p><code>serviceDiscovery</code>执行具体的发现逻辑，遍历文件夹下所有文件，如果是uds就反射其实现的service，记录下来。后面会通过callback根据全局的service->注册函数来进行向全局工厂注册。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go>
+<span style=color:#75715e>// serviceDiscovery returns all available discovered pluggable components services.
+</span><span style=color:#75715e>// uses gRPC reflection package to list implemented services.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>serviceDiscovery</span>(<span style=color:#a6e22e>reflectClientFactory</span> <span style=color:#66d9ef>func</span>(<span style=color:#66d9ef>string</span>) (<span style=color:#a6e22e>reflectServiceClient</span>, <span style=color:#66d9ef>func</span>(), <span style=color:#66d9ef>error</span>)) ([]<span style=color:#a6e22e>service</span>, <span style=color:#66d9ef>error</span>) {
+	<span style=color:#a6e22e>services</span> <span style=color:#f92672>:=</span> []<span style=color:#a6e22e>service</span>{}
+	<span style=color:#a6e22e>componentsSocketPath</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>GetSocketFolderPath</span>()
+	<span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>Stat</span>(<span style=color:#a6e22e>componentsSocketPath</span>)
+
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>IsNotExist</span>(<span style=color:#a6e22e>err</span>) { <span style=color:#75715e>// not exists is the same as empty.
+</span><span style=color:#75715e></span>		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>services</span>, <span style=color:#66d9ef>nil</span>
+	}
+
+	<span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Debugf</span>(<span style=color:#e6db74>&#34;loading pluggable components under path %s&#34;</span>, <span style=color:#a6e22e>componentsSocketPath</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+	}
+
+	<span style=color:#a6e22e>files</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>ReadDir</span>(<span style=color:#a6e22e>componentsSocketPath</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;could not list pluggable components unix sockets: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+	}
+
+	<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>dirEntry</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>files</span> {
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>dirEntry</span>.<span style=color:#a6e22e>IsDir</span>() { <span style=color:#75715e>// skip dirs
+</span><span style=color:#75715e></span>			<span style=color:#66d9ef>continue</span>
+		}
+
+		<span style=color:#a6e22e>f</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>dirEntry</span>.<span style=color:#a6e22e>Info</span>()
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+			<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+		}
+
+		<span style=color:#a6e22e>socket</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>filepath</span>.<span style=color:#a6e22e>Join</span>(<span style=color:#a6e22e>componentsSocketPath</span>, <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>Name</span>())
+		<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>utils</span>.<span style=color:#a6e22e>IsSocket</span>(<span style=color:#a6e22e>f</span>) {
+			<span style=color:#a6e22e>discoveryLog</span>.<span style=color:#a6e22e>Warnf</span>(<span style=color:#e6db74>&#34;could not use socket for file %s&#34;</span>, <span style=color:#a6e22e>socket</span>)
+			<span style=color:#66d9ef>continue</span>
+		}
+
+    <span style=color:#75715e>// dail server构造反射client
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>refctClient</span>, <span style=color:#a6e22e>cleanup</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>reflectClientFactory</span>(<span style=color:#a6e22e>socket</span>)
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+			<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+		}
+    <span style=color:#75715e>// 关闭与server链接，排空GRPC反射数据流
+</span><span style=color:#75715e></span>		<span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>cleanup</span>()
+
+    <span style=color:#75715e>// 列出服务端实现的所有service，包括反射service本身。例如对于pubsub来说，会包含以下两项`dapr.proto.components.v1.PubSub`,`grpc.reflection.v1alpha.ServerReflection`。
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>serviceList</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>refctClient</span>.<span style=color:#a6e22e>ListServices</span>()
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+			<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;unable to list services: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+		}
+    <span style=color:#75715e>// 将socket地址和额外的grpc选项闭包方式传入dialer方法，dialer将会接收`componentName`并且通过`WithStreamInterceptor`option将其自动加入到metadata中。
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>dialer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>socketDialer</span>(<span style=color:#a6e22e>socket</span>, <span style=color:#a6e22e>grpc</span>.<span style=color:#a6e22e>WithBlock</span>(), <span style=color:#a6e22e>grpc</span>.<span style=color:#a6e22e>FailOnNonTempDialError</span>(<span style=color:#66d9ef>true</span>))
+
+    <span style=color:#75715e>// componentName就是componet在注册的时候提供的名称，在实例化这个component的时候需要以`type.componentName`例如`pubsub.my-component`
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>componentName</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>removeExt</span>(<span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>Name</span>())
+    <span style=color:#75715e>// 这里根据这个socket实现的service注册到列表里。后面会通过callback根据实现的service进行注册。
+</span><span style=color:#75715e></span>		<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>svc</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>serviceList</span> {
+			<span style=color:#a6e22e>services</span> = append(<span style=color:#a6e22e>services</span>, <span style=color:#a6e22e>service</span>{
+				<span style=color:#a6e22e>componentName</span>: <span style=color:#a6e22e>componentName</span>,
+				<span style=color:#a6e22e>protoRef</span>:      <span style=color:#a6e22e>svc</span>,
+				<span style=color:#a6e22e>dialer</span>:        <span style=color:#a6e22e>dialer</span>,
+			})
+		}
+	}
+	<span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Debugf</span>(<span style=color:#e6db74>&#34;found %d pluggable component services&#34;</span>, len(<span style=color:#a6e22e>services</span>)<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>) <span style=color:#75715e>// reflection api doesn&#39;t count.
+</span><span style=color:#75715e></span>	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>services</span>, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><p>callback函数的作用是将组件注册到对应的组件种类下（pubsub、state、binding&mldr;）。Dapr中的组件类型格式是<code>组件种类.组件具体类型</code>例如<code>pubsub.redis</code>，不同的组件种类需要注册到不同的组件工厂中。这里就是通过一个全局的类型=>注册函数映射来调用实际的注册函数。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// callback invoke callback function for each given service
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>callback</span>(<span style=color:#a6e22e>services</span> []<span style=color:#a6e22e>service</span>) {
+	<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>service</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>services</span> {
+		<span style=color:#a6e22e>callback</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>onServiceDiscovered</span>[<span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>protoRef</span>]
+		<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> { <span style=color:#75715e>// ignoring unknown service
+</span><span style=color:#75715e></span>			<span style=color:#66d9ef>continue</span>
+		}
+		<span style=color:#a6e22e>callback</span>(<span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>componentName</span>, <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>dialer</span>)
+		<span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Infof</span>(<span style=color:#e6db74>&#34;pluggable component &#39;%s&#39; was successfully registered for &#39;%s&#39;&#34;</span>, <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>componentName</span>, <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>protoRef</span>)
+	}
+}
+</code></pre></div><p>所有支持Pluggable 组件的种类，都会在初始化的时候注册自己的种类的工厂注册函数。例如下面就是对于pubsub的注册。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>init</span>() {
+   <span style=color:#75715e>//nolint:nosnakecase
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>pluggable</span>.<span style=color:#a6e22e>AddServiceDiscoveryCallback</span>(<span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSub_ServiceDesc</span>.<span style=color:#a6e22e>ServiceName</span>, <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>name</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>dialer</span> <span style=color:#a6e22e>pluggable</span>.<span style=color:#a6e22e>GRPCConnectionDialer</span>) {
+      <span style=color:#a6e22e>DefaultRegistry</span>.<span style=color:#a6e22e>RegisterComponent</span>(<span style=color:#a6e22e>newGRPCPubSub</span>(<span style=color:#a6e22e>dialer</span>), <span style=color:#a6e22e>name</span>)
+   })
+}
+</code></pre></div><h4 id=加载>加载</h4>
+<p>根据k8s还是standalone模式，初始化不同的loader，然后加载yaml文件，首先解析<code>typeInfo</code>判断Kind是否跟要解析的目标一致，针对此情况，就是<code>Component</code>。加载完时候过滤一下scop，去除掉不是自己app-id的。然后把comp丢进Runtime <code>pendingComponents</code>channel中，有一个协程在启动时异步进行处理。先加载机密存储组件，然后加载其余的组件。这里加载组件是不区分build-in还是pluggable的。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>a</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>DaprRuntime</span>) <span style=color:#a6e22e>loadComponents</span>(<span style=color:#a6e22e>opts</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>runtimeOpts</span>) <span style=color:#66d9ef>error</span> {
+   <span style=color:#66d9ef>var</span> <span style=color:#a6e22e>loader</span> <span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>ComponentLoader</span>
+	<span style=color:#75715e>// 根据运行环境时k8s还是Standalone来使用不同的加载配置模式
+</span><span style=color:#75715e></span>   <span style=color:#66d9ef>switch</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>runtimeConfig</span>.<span style=color:#a6e22e>Mode</span> {
+   <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>modes</span>.<span style=color:#a6e22e>KubernetesMode</span>:
+      <span style=color:#a6e22e>loader</span> = <span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>NewKubernetesComponents</span>(<span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>runtimeConfig</span>.<span style=color:#a6e22e>Kubernetes</span>, <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>namespace</span>, <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>operatorClient</span>, <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>podName</span>)
+   <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>modes</span>.<span style=color:#a6e22e>StandaloneMode</span>:
+      <span style=color:#a6e22e>loader</span> = <span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>NewStandaloneComponents</span>(<span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>runtimeConfig</span>.<span style=color:#a6e22e>Standalone</span>)
+   <span style=color:#66d9ef>default</span>:
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;components loader for mode %s not found&#34;</span>, <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>runtimeConfig</span>.<span style=color:#a6e22e>Mode</span>)
+   }
+
+   <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Info</span>(<span style=color:#e6db74>&#34;loading components&#34;</span>)
+   <span style=color:#a6e22e>comps</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>loader</span>.<span style=color:#a6e22e>LoadComponents</span>()
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+
+   <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>comp</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>comps</span> {
+      <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Debugf</span>(<span style=color:#e6db74>&#34;found component. name: %s, type: %s/%s&#34;</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>ObjectMeta</span>.<span style=color:#a6e22e>Name</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Version</span>)
+   }
+
+   <span style=color:#a6e22e>authorizedComps</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>getAuthorizedComponents</span>(<span style=color:#a6e22e>comps</span>)
+
+   <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>componentsLock</span>.<span style=color:#a6e22e>Lock</span>()
+   <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>components</span> = <span style=color:#a6e22e>authorizedComps</span>
+   <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>componentsLock</span>.<span style=color:#a6e22e>Unlock</span>()
+
+   <span style=color:#75715e>// Iterate through the list twice
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// First, we look for secret stores and load those, then all other components
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// Sure, we could sort the list of authorizedComps... but this is simpler and most certainly faster
+</span><span style=color:#75715e></span>  <span style=color:#75715e>// 先处理机密存储，因为其他组件可能会依赖机密存储中的信息
+</span><span style=color:#75715e></span>   <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>comp</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>authorizedComps</span> {
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>strings</span>.<span style=color:#a6e22e>HasPrefix</span>(<span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, string(<span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>CategorySecretStore</span>)<span style=color:#f92672>+</span><span style=color:#e6db74>&#34;.&#34;</span>) {
+         <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>pendingComponents</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>comp</span>
+      }
+   }
+   <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>comp</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>authorizedComps</span> {
+      <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>strings</span>.<span style=color:#a6e22e>HasPrefix</span>(<span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, string(<span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>CategorySecretStore</span>)<span style=color:#f92672>+</span><span style=color:#e6db74>&#34;.&#34;</span>) {
+         <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>pendingComponents</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>comp</span>
+      }
+   }
+
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><h5 id=处理单个组件>处理单个组件</h5>
+<p>这个函数的具体逻辑就是针对单个组件定义，通过工厂方法创建组件实例，然后根据类型存储在runtime中。这里面背后的详细逻辑比较多就不展开介绍了，会在后面的文章中进行介绍。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>a</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>DaprRuntime</span>) <span style=color:#a6e22e>processComponentAndDependents</span>(<span style=color:#a6e22e>comp</span> <span style=color:#a6e22e>componentsV1alpha1</span>.<span style=color:#a6e22e>Component</span>) <span style=color:#66d9ef>error</span> {
+   <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Debugf</span>(<span style=color:#e6db74>&#34;loading component. name: %s, type: %s/%s&#34;</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>ObjectMeta</span>.<span style=color:#a6e22e>Name</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Version</span>)
+   <span style=color:#a6e22e>res</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>preprocessOneComponent</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>comp</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>unreadyDependency</span> <span style=color:#f92672>!=</span> <span style=color:#e6db74>&#34;&#34;</span> {
+      <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>pendingComponentDependents</span>[<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>unreadyDependency</span>] = append(<span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>pendingComponentDependents</span>[<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>unreadyDependency</span>], <span style=color:#a6e22e>comp</span>)
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+   }
+	 <span style=color:#75715e>// 解析组件类型，pubsub、state等，就是在注册到registry时.前面的部分。
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>compCategory</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>extractComponentCategory</span>(<span style=color:#a6e22e>comp</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>compCategory</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;&#34;</span> {
+      <span style=color:#75715e>// the category entered is incorrect, return error
+</span><span style=color:#75715e></span>      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;incorrect type %s&#34;</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>)
+   }
+
+   <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>error</span>, <span style=color:#ae81ff>1</span>)
+
+   <span style=color:#a6e22e>timeout</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>ParseDuration</span>(<span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>InitTimeout</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#a6e22e>timeout</span> = <span style=color:#a6e22e>defaultComponentInitTimeout</span>
+   }
+
+   <span style=color:#75715e>// 异步实际解析，好在超时的时候进行退出。这个函数就是分类型进行实际处理的。
+</span><span style=color:#75715e></span>   <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+      <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>doProcessOneComponent</span>(<span style=color:#a6e22e>compCategory</span>, <span style=color:#a6e22e>comp</span>)
+   }()
+
+   <span style=color:#66d9ef>select</span> {
+   <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ch</span>:
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+      }
+   <span style=color:#66d9ef>case</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>After</span>(<span style=color:#a6e22e>timeout</span>):
+      <span style=color:#a6e22e>diag</span>.<span style=color:#a6e22e>DefaultMonitoring</span>.<span style=color:#a6e22e>ComponentInitFailed</span>(<span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, <span style=color:#e6db74>&#34;init&#34;</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>ObjectMeta</span>.<span style=color:#a6e22e>Name</span>)
+      <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;init timeout for component %s exceeded after %s&#34;</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Name</span>, <span style=color:#a6e22e>timeout</span>.<span style=color:#a6e22e>String</span>())
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>NewInitError</span>(<span style=color:#a6e22e>InitComponentFailure</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>LogName</span>(), <span style=color:#a6e22e>err</span>)
+   }
+
+   <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Infof</span>(<span style=color:#e6db74>&#34;component loaded. name: %s, type: %s/%s&#34;</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>ObjectMeta</span>.<span style=color:#a6e22e>Name</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Version</span>)
+   <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>appendOrReplaceComponents</span>(<span style=color:#a6e22e>comp</span>)
+   <span style=color:#a6e22e>diag</span>.<span style=color:#a6e22e>DefaultMonitoring</span>.<span style=color:#a6e22e>ComponentLoaded</span>()
+
+   <span style=color:#a6e22e>dependency</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>componentDependency</span>(<span style=color:#a6e22e>compCategory</span>, <span style=color:#a6e22e>comp</span>.<span style=color:#a6e22e>Name</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>deps</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>pendingComponentDependents</span>[<span style=color:#a6e22e>dependency</span>]; <span style=color:#a6e22e>ok</span> {
+      delete(<span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>pendingComponentDependents</span>, <span style=color:#a6e22e>dependency</span>)
+      <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>dependent</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>deps</span> {
+         <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>processComponentAndDependents</span>(<span style=color:#a6e22e>dependent</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+            <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+         }
+      }
+   }
+
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><p>pubsub初始化</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>a</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>DaprRuntime</span>) <span style=color:#a6e22e>initPubSub</span>(<span style=color:#a6e22e>c</span> <span style=color:#a6e22e>componentsV1alpha1</span>.<span style=color:#a6e22e>Component</span>) <span style=color:#66d9ef>error</span> {
+   <span style=color:#a6e22e>fName</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>LogName</span>()
+   <span style=color:#a6e22e>pubSub</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>pubSubRegistry</span>.<span style=color:#a6e22e>Create</span>(<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Version</span>, <span style=color:#a6e22e>fName</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#a6e22e>diag</span>.<span style=color:#a6e22e>DefaultMonitoring</span>.<span style=color:#a6e22e>ComponentInitFailed</span>(<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, <span style=color:#e6db74>&#34;creation&#34;</span>, <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>ObjectMeta</span>.<span style=color:#a6e22e>Name</span>)
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>NewInitError</span>(<span style=color:#a6e22e>CreateComponentFailure</span>, <span style=color:#a6e22e>fName</span>, <span style=color:#a6e22e>err</span>)
+   }
+
+   <span style=color:#a6e22e>baseMetadata</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>toBaseMetadata</span>(<span style=color:#a6e22e>c</span>)
+   <span style=color:#a6e22e>properties</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>baseMetadata</span>.<span style=color:#a6e22e>Properties</span>
+   <span style=color:#a6e22e>consumerID</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>strings</span>.<span style=color:#a6e22e>TrimSpace</span>(<span style=color:#a6e22e>properties</span>[<span style=color:#e6db74>&#34;consumerID&#34;</span>])
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>consumerID</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;&#34;</span> {
+      <span style=color:#a6e22e>consumerID</span> = <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>runtimeConfig</span>.<span style=color:#a6e22e>ID</span>
+   }
+   <span style=color:#a6e22e>properties</span>[<span style=color:#e6db74>&#34;consumerID&#34;</span>] = <span style=color:#a6e22e>consumerID</span>
+
+   <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>pubSub</span>.<span style=color:#a6e22e>Init</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>TODO</span>(), <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Metadata</span>{<span style=color:#a6e22e>Base</span>: <span style=color:#a6e22e>baseMetadata</span>})
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#a6e22e>diag</span>.<span style=color:#a6e22e>DefaultMonitoring</span>.<span style=color:#a6e22e>ComponentInitFailed</span>(<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>, <span style=color:#e6db74>&#34;init&#34;</span>, <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>ObjectMeta</span>.<span style=color:#a6e22e>Name</span>)
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>NewInitError</span>(<span style=color:#a6e22e>InitComponentFailure</span>, <span style=color:#a6e22e>fName</span>, <span style=color:#a6e22e>err</span>)
+   }
+
+   <span style=color:#a6e22e>pubsubName</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>ObjectMeta</span>.<span style=color:#a6e22e>Name</span>
+
+   <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>pubSubs</span>[<span style=color:#a6e22e>pubsubName</span>] = <span style=color:#a6e22e>pubsubItem</span>{
+      <span style=color:#a6e22e>component</span>:           <span style=color:#a6e22e>pubSub</span>,
+      <span style=color:#a6e22e>scopedSubscriptions</span>: <span style=color:#a6e22e>scopes</span>.<span style=color:#a6e22e>GetScopedTopics</span>(<span style=color:#a6e22e>scopes</span>.<span style=color:#a6e22e>SubscriptionScopes</span>, <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>runtimeConfig</span>.<span style=color:#a6e22e>ID</span>, <span style=color:#a6e22e>properties</span>),
+      <span style=color:#a6e22e>scopedPublishings</span>:   <span style=color:#a6e22e>scopes</span>.<span style=color:#a6e22e>GetScopedTopics</span>(<span style=color:#a6e22e>scopes</span>.<span style=color:#a6e22e>PublishingScopes</span>, <span style=color:#a6e22e>a</span>.<span style=color:#a6e22e>runtimeConfig</span>.<span style=color:#a6e22e>ID</span>, <span style=color:#a6e22e>properties</span>),
+      <span style=color:#a6e22e>allowedTopics</span>:       <span style=color:#a6e22e>scopes</span>.<span style=color:#a6e22e>GetAllowedTopics</span>(<span style=color:#a6e22e>properties</span>),
+      <span style=color:#a6e22e>namespaceScoped</span>:     <span style=color:#a6e22e>metadataContainsNamespace</span>(<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Metadata</span>),
+   }
+   <span style=color:#a6e22e>diag</span>.<span style=color:#a6e22e>DefaultMonitoring</span>.<span style=color:#a6e22e>ComponentInitialized</span>(<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Type</span>)
+
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><p>主要就是给logger加上component名称，然后调用工厂函数。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>p</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Registry</span>) <span style=color:#a6e22e>getPubSub</span>(<span style=color:#a6e22e>name</span>, <span style=color:#a6e22e>version</span>, <span style=color:#a6e22e>logName</span> <span style=color:#66d9ef>string</span>) (<span style=color:#66d9ef>func</span>() <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>PubSub</span>, <span style=color:#66d9ef>bool</span>) {
+   <span style=color:#a6e22e>nameLower</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>strings</span>.<span style=color:#a6e22e>ToLower</span>(<span style=color:#a6e22e>name</span>)
+   <span style=color:#a6e22e>versionLower</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>strings</span>.<span style=color:#a6e22e>ToLower</span>(<span style=color:#a6e22e>version</span>)
+   <span style=color:#a6e22e>pubSubFn</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>messageBuses</span>[<span style=color:#a6e22e>nameLower</span><span style=color:#f92672>+</span><span style=color:#e6db74>&#34;/&#34;</span><span style=color:#f92672>+</span><span style=color:#a6e22e>versionLower</span>]
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>ok</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>wrapFn</span>(<span style=color:#a6e22e>pubSubFn</span>, <span style=color:#a6e22e>logName</span>), <span style=color:#66d9ef>true</span>
+   }
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>IsInitialVersion</span>(<span style=color:#a6e22e>versionLower</span>) {
+      <span style=color:#a6e22e>pubSubFn</span>, <span style=color:#a6e22e>ok</span> = <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>messageBuses</span>[<span style=color:#a6e22e>nameLower</span>]
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>ok</span> {
+         <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>wrapFn</span>(<span style=color:#a6e22e>pubSubFn</span>, <span style=color:#a6e22e>logName</span>), <span style=color:#66d9ef>true</span>
+      }
+   }
+
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>false</span>
+}
+</code></pre></div><p><code>newGRPCPubSub</code>最终返回的是<code>*grpcPubSub</code>这个结构体实现了<code>pubsub.PubSub</code>是对实际的Pluggable的一层包装。在init的时候实例化一个Pluggable component，包含三部分：</p>
+<ul>
+<li>features缓存，因为这个不会变，所以获取一次存起来就行了，减少网络交互</li>
+<li>GRPCConnector创建与pluggable的GRPC连接函数。这是在组件自动发现的时候注册进来的。</li>
+<li>logger日志实体类</li>
+</ul>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// newGRPCPubSub creates a new grpc pubsub for the given pluggable component.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>newGRPCPubSub</span>(<span style=color:#a6e22e>dialer</span> <span style=color:#a6e22e>pluggable</span>.<span style=color:#a6e22e>GRPCConnectionDialer</span>) <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>l</span> <span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Logger</span>) <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>PubSub</span> {
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>l</span> <span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Logger</span>) <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>PubSub</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fromConnector</span>(<span style=color:#a6e22e>l</span>, <span style=color:#a6e22e>pluggable</span>.<span style=color:#a6e22e>NewGRPCConnectorWithDialer</span>(<span style=color:#a6e22e>dialer</span>, <span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>NewPubSubClient</span>))
+   }
+}
+<span style=color:#75715e>// fromConnector creates a new GRPC pubsub using the given underlying connector.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>fromConnector</span>(<span style=color:#a6e22e>l</span> <span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Logger</span>, <span style=color:#a6e22e>connector</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>pluggable</span>.<span style=color:#a6e22e>GRPCConnector</span>[<span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubClient</span>]) <span style=color:#f92672>*</span><span style=color:#a6e22e>grpcPubSub</span> {
+   <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>grpcPubSub</span>{
+      <span style=color:#a6e22e>features</span>:      make([]<span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Feature</span>, <span style=color:#ae81ff>0</span>),
+      <span style=color:#a6e22e>GRPCConnector</span>: <span style=color:#a6e22e>connector</span>,
+      <span style=color:#a6e22e>logger</span>:        <span style=color:#a6e22e>l</span>,
+   }
+}
+</code></pre></div><p>在init的时候创建grpc client，然后调用component的init接口进行初始化。缓存了一下feature。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// grpcPubSub is a implementation of a pubsub over a gRPC Protocol.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>grpcPubSub</span> <span style=color:#66d9ef>struct</span> {
+   <span style=color:#f92672>*</span><span style=color:#a6e22e>pluggable</span>.<span style=color:#a6e22e>GRPCConnector</span>[<span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubClient</span>]
+   <span style=color:#75715e>// features the list of state store implemented features features.
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>features</span> []<span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Feature</span>
+   <span style=color:#a6e22e>logger</span>   <span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Logger</span>
+}
+
+<span style=color:#75715e>// Init initializes the grpc pubsub passing out the metadata to the grpc component.
+</span><span style=color:#75715e>// It also fetches and set the component features.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>p</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>grpcPubSub</span>) <span style=color:#a6e22e>Init</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>metadata</span> <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Metadata</span>) <span style=color:#66d9ef>error</span> {
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>Dial</span>(<span style=color:#a6e22e>metadata</span>.<span style=color:#a6e22e>Name</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+
+   <span style=color:#a6e22e>protoMetadata</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>MetadataRequest</span>{
+      <span style=color:#a6e22e>Properties</span>: <span style=color:#a6e22e>metadata</span>.<span style=color:#a6e22e>Properties</span>,
+   }
+
+   <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>Client</span>.<span style=color:#a6e22e>Init</span>(<span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubInitRequest</span>{
+      <span style=color:#a6e22e>Metadata</span>: <span style=color:#a6e22e>protoMetadata</span>,
+   })
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+
+   <span style=color:#75715e>// TODO Static data could be retrieved in another way, a necessary discussion should start soon.
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// we need to call the method here because features could return an error and the features interface doesn&#39;t support errors
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>featureResponse</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>Client</span>.<span style=color:#a6e22e>Features</span>(<span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>FeaturesRequest</span>{})
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+
+   <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>features</span> = make([]<span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Feature</span>, len(<span style=color:#a6e22e>featureResponse</span>.<span style=color:#a6e22e>Features</span>))
+   <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>idx</span>, <span style=color:#a6e22e>f</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>featureResponse</span>.<span style=color:#a6e22e>Features</span> {
+      <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>features</span>[<span style=color:#a6e22e>idx</span>] = <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Feature</span>(<span style=color:#a6e22e>f</span>)
+   }
+
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><h4 id=dapr适配>dapr适配</h4>
+<p>pluggable组件与dapr通过grpc进行通信，dapr与组件之间通过interface来进行交互。所以需要一层适配层将grpc的client转化为dapr的组件interface，这针对不同的组件种类需要不同的实现。例如对于pubsub来说：</p>
+<h5 id=publish>publish</h5>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Publish publishes data to a topic.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>p</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>grpcPubSub</span>) <span style=color:#a6e22e>Publish</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>req</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>PublishRequest</span>) <span style=color:#66d9ef>error</span> {
+	<span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>Client</span>.<span style=color:#a6e22e>Publish</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PublishRequest</span>{
+		<span style=color:#a6e22e>Topic</span>:      <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Topic</span>,
+		<span style=color:#a6e22e>PubsubName</span>: <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>PubsubName</span>,
+		<span style=color:#a6e22e>Data</span>:       <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Data</span>,
+		<span style=color:#a6e22e>Metadata</span>:   <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Metadata</span>,
+	})
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+}
+</code></pre></div><h5 id=subscribe>subscribe</h5>
+<p>订阅消息针对每次调用，新增一个<code>PullMessages</code>的双向grpc stream，循环读取消息，处理消息（发送给app），处理完成后发送ack。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// pullMessages pull messages of the given subscription and execute the handler for that messages.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>p</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>grpcPubSub</span>) <span style=color:#a6e22e>pullMessages</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>topic</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>Topic</span>, <span style=color:#a6e22e>handler</span> <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Handler</span>) <span style=color:#66d9ef>error</span> {
+	<span style=color:#75715e>// first pull should be sync and subsequent connections can be made in background if necessary
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>pull</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>Client</span>.<span style=color:#a6e22e>PullMessages</span>(<span style=color:#a6e22e>ctx</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;unable to subscribe: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+	}
+
+	<span style=color:#a6e22e>streamCtx</span>, <span style=color:#a6e22e>cancel</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>WithCancel</span>(<span style=color:#a6e22e>pull</span>.<span style=color:#a6e22e>Context</span>())
+
+	<span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>pull</span>.<span style=color:#a6e22e>Send</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesRequest</span>{
+		<span style=color:#a6e22e>Topic</span>: <span style=color:#a6e22e>topic</span>,
+	})
+
+	<span style=color:#a6e22e>cleanup</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>func</span>() {
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>closeErr</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>pull</span>.<span style=color:#a6e22e>CloseSend</span>(); <span style=color:#a6e22e>closeErr</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+			<span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Warnf</span>(<span style=color:#e6db74>&#34;could not close pull stream of topic %s: %v&#34;</span>, <span style=color:#a6e22e>topic</span>.<span style=color:#a6e22e>Name</span>, <span style=color:#a6e22e>closeErr</span>)
+		}
+		<span style=color:#a6e22e>cancel</span>()
+	}
+
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#a6e22e>cleanup</span>()
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;unable to subscribe: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+	}
+
+	<span style=color:#a6e22e>handle</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>adaptHandler</span>(<span style=color:#a6e22e>streamCtx</span>, <span style=color:#a6e22e>pull</span>, <span style=color:#a6e22e>handler</span>)
+	<span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+		<span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>cleanup</span>()
+		<span style=color:#66d9ef>for</span> {
+			<span style=color:#a6e22e>msg</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>pull</span>.<span style=color:#a6e22e>Recv</span>()
+			<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>EOF</span> { <span style=color:#75715e>// no more messages
+</span><span style=color:#75715e></span>				<span style=color:#66d9ef>return</span>
+			}
+
+			<span style=color:#75715e>// TODO reconnect on error
+</span><span style=color:#75715e></span>			<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+				<span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;failed to receive message: %v&#34;</span>, <span style=color:#a6e22e>err</span>)
+				<span style=color:#66d9ef>return</span>
+			}
+
+			<span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Debugf</span>(<span style=color:#e6db74>&#34;received message from stream on topic %s&#34;</span>, <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>TopicName</span>)
+
+			<span style=color:#66d9ef>go</span> <span style=color:#a6e22e>handle</span>(<span style=color:#a6e22e>msg</span>)
+		}
+	}()
+
+	<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><p><code>adaptHandler</code>是对hander的一个封装，主要作用是为了控制ack的时候的并发问题。可以看到这里通过闭包的方式创建了处理函数，持有同一个锁来控制并发。PS：这里通过锁控制在高并发情况下<strong>理论上</strong>容易发生惊群效应，引起CPU的升高，如果在使用中观察到这个现象，改成通过channel会好一点。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// adaptHandler returns a non-error function that handle the message with the given handler and ack when returns.
+</span><span style=color:#75715e>//
+</span><span style=color:#75715e>//nolint:nosnakecase
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>p</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>grpcPubSub</span>) <span style=color:#a6e22e>adaptHandler</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>streamingPull</span> <span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSub_PullMessagesClient</span>, <span style=color:#a6e22e>handler</span> <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Handler</span>) <span style=color:#a6e22e>messageHandler</span> {
+   <span style=color:#a6e22e>safeSend</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>sync</span>.<span style=color:#a6e22e>Mutex</span>{}
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>msg</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesResponse</span>) {
+      <span style=color:#a6e22e>m</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>NewMessage</span>{
+         <span style=color:#a6e22e>Data</span>:        <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>Data</span>,
+         <span style=color:#a6e22e>ContentType</span>: <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>ContentType</span>,
+         <span style=color:#a6e22e>Topic</span>:       <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>TopicName</span>,
+         <span style=color:#a6e22e>Metadata</span>:    <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>Metadata</span>,
+      }
+      <span style=color:#66d9ef>var</span> <span style=color:#a6e22e>ackError</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>AckMessageError</span>
+
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>handler</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>m</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;error when handling message on topic %s&#34;</span>, <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>TopicName</span>)
+         <span style=color:#a6e22e>ackError</span> = <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>AckMessageError</span>{
+            <span style=color:#a6e22e>Message</span>: <span style=color:#a6e22e>err</span>.<span style=color:#a6e22e>Error</span>(),
+         }
+      }
+
+      <span style=color:#75715e>// As per documentation:
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// When using streams,
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// one must take care to avoid calling either SendMsg or RecvMsg multiple times against the same Stream from different goroutines.
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// In other words, it&#39;s safe to have a goroutine calling SendMsg and another goroutine calling RecvMsg on the same stream at the same time.
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// But it is not safe to call SendMsg on the same stream in different goroutines, or to call RecvMsg on the same stream in different goroutines.
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// https://github.com/grpc/grpc-go/blob/master/Documentation/concurrency.md#streams
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>safeSend</span>.<span style=color:#a6e22e>Lock</span>()
+      <span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>safeSend</span>.<span style=color:#a6e22e>Unlock</span>()
+
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>streamingPull</span>.<span style=color:#a6e22e>Send</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesRequest</span>{
+         <span style=color:#a6e22e>AckMessageId</span>: <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>Id</span>,
+         <span style=color:#a6e22e>AckError</span>:     <span style=color:#a6e22e>ackError</span>,
+      }); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#a6e22e>p</span>.<span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;error when ack&#39;ing message %s from topic %s&#34;</span>, <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>Id</span>, <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>TopicName</span>)
+      }
+   }
+}
+</code></pre></div><h3 id=sdk>SDK</h3>
+<h5 id=example及初始化>example及初始化</h5>
+<p>对于SDK来说，可以注册运行多个pluggable componet实例，以名字作为唯一区分。注册也很简单，返回一个实现了对应component接口的实例就可以。例如以pubsub为例：</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+	<span style=color:#a6e22e>dapr</span>.<span style=color:#a6e22e>Register</span>(<span style=color:#e6db74>&#34;my-component-redis&#34;</span>, <span style=color:#a6e22e>dapr</span>.<span style=color:#a6e22e>WithPubSub</span>(<span style=color:#66d9ef>func</span>() <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>PubSub</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>RedisComponent</span>{}
+	}))
+	<span style=color:#a6e22e>dapr</span>.<span style=color:#a6e22e>MustRun</span>()
+}
+</code></pre></div><p>WithPubSub factory方法返回的是一个实现了contrib中定义的pubsub.PubSub接口的实例，这也是build-in的组件实现的接口。<code>pubsub.Register</code>会在后面介绍，主要就是将pubsub的实现与grpc server进行关联。mux是一个wrapper，主要为了用户在一个pluggable类型下定义了多个componet的情况进行隔离，每个有自己的实例。其逻辑比较简单，就是根据metadata中带的<code>*InstanceID*</code>来加载对应实例（上文说过这里会在runtime自动注入）这部分会纵向拉出来在后文中详细介绍。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>WithPubSub</span>(<span style=color:#a6e22e>factory</span> <span style=color:#66d9ef>func</span>() <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>PubSub</span>) <span style=color:#a6e22e>option</span> {
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>cf</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>componentsOpts</span>) {
+      <span style=color:#a6e22e>cf</span>.<span style=color:#a6e22e>useGrpcServer</span> = append(<span style=color:#a6e22e>cf</span>.<span style=color:#a6e22e>useGrpcServer</span>, <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>grpc</span>.<span style=color:#a6e22e>Server</span>) {
+         <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Register</span>(<span style=color:#a6e22e>s</span>, <span style=color:#a6e22e>mux</span>(<span style=color:#a6e22e>factory</span>))
+      })
+   }
+}
+</code></pre></div><p>我们看下MustRun执行了哪些操作。这里会调用Run方法，遇到错误就退出。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// MustRun same as run but panics on error
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>MustRun</span>() {
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>Run</span>(); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		panic(<span style=color:#a6e22e>err</span>)
+	}
+}
+</code></pre></div><p>Run根据环境变量获取socket文件夹，创建sock文件。每有一个withXXX就会创建一个，使用其名称作为文件名。然后针对每个注册的component调用runComponent来运行。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Run starts the component server.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Run</span>() <span style=color:#66d9ef>error</span> {
+	<span style=color:#a6e22e>socketFolder</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>LookupEnv</span>(<span style=color:#a6e22e>unixSocketFolderPathEnvVar</span>)
+	<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+		<span style=color:#a6e22e>socketFolder</span>, <span style=color:#a6e22e>ok</span> = <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>LookupEnv</span>(<span style=color:#a6e22e>fallbackUnixSocketFolderPathEnvVar</span>)
+		<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+			<span style=color:#a6e22e>socketFolder</span> = <span style=color:#a6e22e>defaultSocketFolder</span>
+		}
+	}
+	<span style=color:#66d9ef>if</span> len(<span style=color:#a6e22e>factories</span>) <span style=color:#f92672>==</span> <span style=color:#ae81ff>0</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ErrNoComponentsRegistered</span>
+	}
+	<span style=color:#a6e22e>done</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>struct</span>{}, len(<span style=color:#a6e22e>factories</span>))
+	<span style=color:#a6e22e>abort</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>makeAbortChan</span>(<span style=color:#a6e22e>done</span>)
+	<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>cleanupGroup</span> <span style=color:#a6e22e>sync</span>.<span style=color:#a6e22e>WaitGroup</span>
+
+	<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>component</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>factories</span> {
+		<span style=color:#a6e22e>socket</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>filepath</span>.<span style=color:#a6e22e>Join</span>(<span style=color:#a6e22e>socketFolder</span>, <span style=color:#a6e22e>component</span><span style=color:#f92672>+</span><span style=color:#e6db74>&#34;.sock&#34;</span>)
+		<span style=color:#a6e22e>cleanupGroup</span>.<span style=color:#a6e22e>Add</span>(<span style=color:#ae81ff>1</span>)
+		<span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>opts</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>componentsOpts</span>) {
+			<span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>runComponent</span>(<span style=color:#a6e22e>socket</span>, <span style=color:#a6e22e>opts</span>, <span style=color:#a6e22e>abort</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>cleanupGroup</span>)
+			<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+				<span style=color:#a6e22e>svcLogger</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;aborting due to an error %v&#34;</span>, <span style=color:#a6e22e>err</span>)
+				<span style=color:#a6e22e>done</span> <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>struct</span>{}{}
+			}
+		}(<span style=color:#a6e22e>factories</span>[<span style=color:#a6e22e>component</span>])
+	}
+
+	<span style=color:#66d9ef>select</span> {
+	<span style=color:#66d9ef>case</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>done</span>:
+		<span style=color:#a6e22e>cleanupGroup</span>.<span style=color:#a6e22e>Wait</span>()
+		<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+	<span style=color:#66d9ef>case</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>abort</span>:
+		<span style=color:#a6e22e>cleanupGroup</span>.<span style=color:#a6e22e>Wait</span>()
+		<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+	}
+}
+</code></pre></div><p>runComponent就是正常启动grpc server，然后会为其注册反射服务。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go>
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>runComponent</span>(<span style=color:#a6e22e>socket</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>opts</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>componentsOpts</span>, <span style=color:#a6e22e>abortChan</span> <span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>struct</span>{}, <span style=color:#a6e22e>onFinish</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>sync</span>.<span style=color:#a6e22e>WaitGroup</span>) <span style=color:#66d9ef>error</span> {
+	<span style=color:#75715e>// remove socket if it is already created.
+</span><span style=color:#75715e></span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>Remove</span>(<span style=color:#a6e22e>socket</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> <span style=color:#f92672>&amp;&amp;</span> !<span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>IsNotExist</span>(<span style=color:#a6e22e>err</span>) {
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+	}
+
+	<span style=color:#a6e22e>svcLogger</span>.<span style=color:#a6e22e>Infof</span>(<span style=color:#e6db74>&#34;using socket defined at &#39;%s&#39;&#34;</span>, <span style=color:#a6e22e>socket</span>)
+
+	<span style=color:#a6e22e>lis</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>Listen</span>(<span style=color:#e6db74>&#34;unix&#34;</span>, <span style=color:#a6e22e>socket</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+	}
+
+	<span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>lis</span>.<span style=color:#a6e22e>Close</span>()
+
+	<span style=color:#a6e22e>server</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>grpc</span>.<span style=color:#a6e22e>NewServer</span>()
+
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>opts</span>.<span style=color:#a6e22e>apply</span>(<span style=color:#a6e22e>server</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+	}
+	<span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+		<span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>onFinish</span>.<span style=color:#a6e22e>Done</span>()
+		<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>abortChan</span>
+		<span style=color:#a6e22e>lis</span>.<span style=color:#a6e22e>Close</span>()
+	}()
+	<span style=color:#75715e>// 将 grpc.Server 注册到反射服务中，这样在启动 gprc 反射服务后，那么就可以通过 reflection 包提供的反射服务查询 gRPC 服务及调用 gRPC 方法。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>reflection</span>.<span style=color:#a6e22e>Register</span>(<span style=color:#a6e22e>server</span>)
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>server</span>.<span style=color:#a6e22e>Serve</span>(<span style=color:#a6e22e>lis</span>)
+}
+</code></pre></div><h4 id=pubsub>pubsub</h4>
+<h5 id=包装>包装</h5>
+<p>在上文中<code>example及初始化</code>部分略过了Register实际的处理。可以看到这里对传入的pubsub实例进行了代理包装，实现了GRPC server对应的方法，然后在对应的方法中获取组件实例（上面的mux方法），并调用实例对应的实际实现的逻辑方法。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Register the pubsub implementation for the component gRPC service.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Register</span>(<span style=color:#a6e22e>server</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>grpc</span>.<span style=color:#a6e22e>Server</span>, <span style=color:#a6e22e>getInstance</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#a6e22e>PubSub</span>) {
+   <span style=color:#a6e22e>pubsub</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>pubsub</span>{
+      <span style=color:#a6e22e>getInstance</span>: <span style=color:#a6e22e>getInstance</span>,
+   }
+   <span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>RegisterPubSubServer</span>(<span style=color:#a6e22e>server</span>, <span style=color:#a6e22e>pubsub</span>)
+}
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>pubsub</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>UnimplementedPubSubServer</span>
+	<span style=color:#a6e22e>getInstance</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#a6e22e>PubSub</span>
+}
+</code></pre></div><h5 id=init>Init</h5>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>pubsub</span>) <span style=color:#a6e22e>Init</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>initReq</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubInitRequest</span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubInitResponse</span>, <span style=color:#66d9ef>error</span>) {
+   <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubInitResponse</span>{}, <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>getInstance</span>(<span style=color:#a6e22e>ctx</span>).<span style=color:#a6e22e>Init</span>(<span style=color:#a6e22e>contribPubSub</span>.<span style=color:#a6e22e>Metadata</span>{
+      <span style=color:#a6e22e>Base</span>: <span style=color:#a6e22e>contribMetadata</span>.<span style=color:#a6e22e>Base</span>{<span style=color:#a6e22e>Properties</span>: <span style=color:#a6e22e>initReq</span>.<span style=color:#a6e22e>Metadata</span>.<span style=color:#a6e22e>Properties</span>},
+   })
+}
+</code></pre></div><h5 id=ping>Ping</h5>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>pubsub</span>) <span style=color:#a6e22e>Ping</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PingRequest</span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PingResponse</span>, <span style=color:#66d9ef>error</span>) {
+   <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PingResponse</span>{}, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><h5 id=features>Features</h5>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>pubsub</span>) <span style=color:#a6e22e>Features</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>FeaturesRequest</span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>FeaturesResponse</span>, <span style=color:#66d9ef>error</span>) {
+   <span style=color:#a6e22e>features</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>FeaturesResponse</span>{
+      <span style=color:#a6e22e>Features</span>: <span style=color:#a6e22e>internal</span>.<span style=color:#a6e22e>Map</span>(<span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>getInstance</span>(<span style=color:#a6e22e>ctx</span>).<span style=color:#a6e22e>Features</span>(), <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>f</span> <span style=color:#a6e22e>contribPubSub</span>.<span style=color:#a6e22e>Feature</span>) <span style=color:#66d9ef>string</span> {
+         <span style=color:#66d9ef>return</span> string(<span style=color:#a6e22e>f</span>)
+      }),
+   }
+
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>features</span>, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><h5 id=publish-1>Publish</h5>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>pubsub</span>) <span style=color:#a6e22e>Publish</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>req</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PublishRequest</span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PublishResponse</span>, <span style=color:#66d9ef>error</span>) {
+   <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PublishResponse</span>{}, <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>getInstance</span>(<span style=color:#a6e22e>ctx</span>).<span style=color:#a6e22e>Publish</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>contribPubSub</span>.<span style=color:#a6e22e>PublishRequest</span>{
+      <span style=color:#a6e22e>Data</span>:        <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Data</span>,
+      <span style=color:#a6e22e>PubsubName</span>:  <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>PubsubName</span>,
+      <span style=color:#a6e22e>Topic</span>:       <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Topic</span>,
+      <span style=color:#a6e22e>Metadata</span>:    <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Metadata</span>,
+      <span style=color:#a6e22e>ContentType</span>: <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>ContentType</span>,
+   })
+}
+</code></pre></div><h5 id=pullmessages>PullMessages</h5>
+<p>从客户端接收消息拉取请求，获取客户端传入的topic，订阅topic，将消息发到客户端处理，并进行ack。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>pubsub</span>) <span style=color:#a6e22e>PullMessages</span>(<span style=color:#a6e22e>stream</span> <span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSub_PullMessagesServer</span>) <span style=color:#66d9ef>error</span> {
+   <span style=color:#75715e>// 第一条消息是要订阅的topic，然后component开始发送，后面的收到的就都是ack的消息了。
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>fstMessage</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>stream</span>.<span style=color:#a6e22e>Recv</span>()
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+
+  <span style=color:#75715e>// 拿到topic
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>topic</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fstMessage</span>.<span style=color:#a6e22e>GetTopic</span>()
+
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>topic</span> <span style=color:#f92672>==</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ErrTopicNotSpecified</span>
+   }
+
+   <span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>cancel</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>WithCancel</span>(<span style=color:#a6e22e>stream</span>.<span style=color:#a6e22e>Context</span>())
+   <span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>cancel</span>()
+
+  <span style=color:#75715e>// 这里是对handler和ack循环的封装
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>handler</span>, <span style=color:#a6e22e>startAckLoop</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>pullFor</span>(<span style=color:#a6e22e>stream</span>)
+
+   <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>getInstance</span>(<span style=color:#a6e22e>ctx</span>).<span style=color:#a6e22e>Subscribe</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>contribPubSub</span>.<span style=color:#a6e22e>SubscribeRequest</span>{
+      <span style=color:#a6e22e>Topic</span>:    <span style=color:#a6e22e>topic</span>.<span style=color:#a6e22e>Name</span>,
+      <span style=color:#a6e22e>Metadata</span>: <span style=color:#a6e22e>topic</span>.<span style=color:#a6e22e>Metadata</span>,
+   }, <span style=color:#a6e22e>handler</span>)
+
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+   }
+
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>startAckLoop</span>()
+}
+</code></pre></div><p>pullFor包含消息处理整体逻辑，就是调用handler往daprd发送，然后根据返回是否成功进行ack或者其他操作。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// pullFor creates a message handler for the given stream.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>pullFor</span>(<span style=color:#a6e22e>stream</span> <span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSub_PullMessagesServer</span>) (<span style=color:#a6e22e>pubsubHandler</span> <span style=color:#a6e22e>contribPubSub</span>.<span style=color:#a6e22e>Handler</span>, <span style=color:#a6e22e>acknLoop</span> <span style=color:#66d9ef>func</span>() <span style=color:#66d9ef>error</span>) {
+  <span style=color:#75715e>// thread safe stream就是对收发消息加锁避免并发问题
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>tfStream</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>internal</span>.<span style=color:#a6e22e>NewGRPCThreadSafeStream</span>[<span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesResponse</span>, <span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesRequest</span>](<span style=color:#a6e22e>stream</span>)
+  <span style=color:#75715e>// ack管理助手
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>ackManager</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>internal</span>.<span style=color:#a6e22e>NewAckManager</span>[<span style=color:#66d9ef>error</span>]()
+  <span style=color:#75715e>// handler是业务处理wrapper，发出消息并等待消息的ack。
+</span><span style=color:#75715e></span>   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>handler</span>(<span style=color:#a6e22e>tfStream</span>, <span style=color:#a6e22e>ackManager</span>), <span style=color:#66d9ef>func</span>() <span style=color:#66d9ef>error</span> {
+     <span style=color:#75715e>// 循环读取dapr运行时发回的ack信息，将ack信息发送到对应channel中。
+</span><span style=color:#75715e></span>      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ackLoop</span>(<span style=color:#a6e22e>stream</span>.<span style=color:#a6e22e>Context</span>(), <span style=color:#a6e22e>tfStream</span>, <span style=color:#a6e22e>ackManager</span>)
+   }
+}
+</code></pre></div><p>此函数就是单个消息处理函数，发消息并等待异步ack，</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// handler build a pubsub handler using the given threadsafe stream and the ack manager.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>handler</span>(<span style=color:#a6e22e>tfStream</span> <span style=color:#a6e22e>internal</span>.<span style=color:#a6e22e>ThreadSafeStream</span>[<span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesResponse</span>, <span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesRequest</span>], <span style=color:#a6e22e>ackManager</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>internal</span>.<span style=color:#a6e22e>AcknowledgementManager</span>[<span style=color:#66d9ef>error</span>]) <span style=color:#a6e22e>contribPubSub</span>.<span style=color:#a6e22e>Handler</span> {
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>contribMsg</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>contribPubSub</span>.<span style=color:#a6e22e>NewMessage</span>) <span style=color:#66d9ef>error</span> {
+     <span style=color:#75715e>// 这里获取一个唯一msgID作为此次消息处理标识，在ackManager那里针对此标识创建pendingAck channel
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>msgID</span>, <span style=color:#a6e22e>pendingAck</span>, <span style=color:#a6e22e>cleanup</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>ackManager</span>.<span style=color:#a6e22e>Get</span>()
+      <span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>cleanup</span>()
+
+      <span style=color:#a6e22e>msg</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesResponse</span>{
+         <span style=color:#a6e22e>Data</span>:        <span style=color:#a6e22e>contribMsg</span>.<span style=color:#a6e22e>Data</span>,
+         <span style=color:#a6e22e>TopicName</span>:   <span style=color:#a6e22e>contribMsg</span>.<span style=color:#a6e22e>Topic</span>,
+         <span style=color:#a6e22e>Metadata</span>:    <span style=color:#a6e22e>contribMsg</span>.<span style=color:#a6e22e>Metadata</span>,
+         <span style=color:#a6e22e>ContentType</span>: <span style=color:#a6e22e>internal</span>.<span style=color:#a6e22e>ZeroValueIfNil</span>(<span style=color:#a6e22e>contribMsg</span>.<span style=color:#a6e22e>ContentType</span>),
+         <span style=color:#a6e22e>Id</span>:          <span style=color:#a6e22e>msgID</span>,
+      }
+
+      <span style=color:#75715e>// in case of message can&#39;t be sent it does not mean that the sidecar didn&#39;t receive the message
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// it only means that the component wasn&#39;t able to receive the response back
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// it could leads in messages being acknowledged without even being pending first
+</span><span style=color:#75715e></span>      <span style=color:#75715e>// we should ignore this since it will be probably retried by the underlying component.
+</span><span style=color:#75715e></span>     <span style=color:#75715e>// 发送到dapr runtime，这里的发送是加锁避免并发的
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>tfStream</span>.<span style=color:#a6e22e>Send</span>(<span style=color:#a6e22e>msg</span>)
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>errors</span>.<span style=color:#a6e22e>Wrapf</span>(<span style=color:#a6e22e>err</span>, <span style=color:#e6db74>&#34;error when sending message %s to consumer on topic %s&#34;</span>, <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>Id</span>, <span style=color:#a6e22e>msg</span>.<span style=color:#a6e22e>TopicName</span>)
+      }
+
+      <span style=color:#66d9ef>select</span> {
+        <span style=color:#75715e>// 这里的err如果不出错的情况下是nil
+</span><span style=color:#75715e></span>      <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>pendingAck</span>:
+         <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+        <span style=color:#75715e>// 这里说明如果要对单条消息做超时控制的话，要在调用handler的时候通过context控制。
+</span><span style=color:#75715e></span>      <span style=color:#66d9ef>case</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ctx</span>.<span style=color:#a6e22e>Done</span>():
+         <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ErrAckTimeout</span>
+      }
+   }
+}
+</code></pre></div><p>这里获取一个唯一msgID作为此次消息处理标识，针对此标识创建pendingAck channel，以及返回清理函数。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>m</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>AcknowledgementManager</span>[<span style=color:#a6e22e>TAckResult</span>]) <span style=color:#a6e22e>Get</span>() (<span style=color:#a6e22e>messageID</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>ackChan</span> <span style=color:#66d9ef>chan</span> <span style=color:#a6e22e>TAckResult</span>, <span style=color:#a6e22e>cleanup</span> <span style=color:#66d9ef>func</span>()) {
+   <span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>Lock</span>()
+   <span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>Unlock</span>()
+   <span style=color:#a6e22e>msgID</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>uuid</span>.<span style=color:#a6e22e>New</span>().<span style=color:#a6e22e>String</span>()
+
+   <span style=color:#a6e22e>ackChan</span> = make(<span style=color:#66d9ef>chan</span> <span style=color:#a6e22e>TAckResult</span>, <span style=color:#ae81ff>1</span>)
+   <span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>pendingAcks</span>[<span style=color:#a6e22e>msgID</span>] = <span style=color:#a6e22e>ackChan</span>
+
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>msgID</span>, <span style=color:#a6e22e>ackChan</span>, <span style=color:#66d9ef>func</span>() {
+      <span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>Lock</span>()
+      delete(<span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>pendingAcks</span>, <span style=color:#a6e22e>msgID</span>)
+      close(<span style=color:#a6e22e>ackChan</span>)
+      <span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>Unlock</span>()
+   }
+}
+</code></pre></div><p>这个就是获取dapr runtime发过来的ack信息，然后发送到对应的channel上。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// ackLoop starts an active ack loop reciving acks from client.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>ackLoop</span>(<span style=color:#a6e22e>streamCtx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>tfStream</span> <span style=color:#a6e22e>internal</span>.<span style=color:#a6e22e>ThreadSafeStream</span>[<span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesResponse</span>, <span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PullMessagesRequest</span>], <span style=color:#a6e22e>ackManager</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>internal</span>.<span style=color:#a6e22e>AcknowledgementManager</span>[<span style=color:#66d9ef>error</span>]) <span style=color:#66d9ef>error</span> {
+   <span style=color:#66d9ef>for</span> {
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>streamCtx</span>.<span style=color:#a6e22e>Err</span>() <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>streamCtx</span>.<span style=color:#a6e22e>Err</span>()
+      }
+      <span style=color:#a6e22e>ack</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>tfStream</span>.<span style=color:#a6e22e>Recv</span>()
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>EOF</span> {
+         <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+      }
+
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+      }
+
+      <span style=color:#66d9ef>var</span> <span style=color:#a6e22e>ackError</span> <span style=color:#66d9ef>error</span>
+
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>ack</span>.<span style=color:#a6e22e>AckError</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#a6e22e>ackError</span> = <span style=color:#a6e22e>errors</span>.<span style=color:#a6e22e>New</span>(<span style=color:#a6e22e>ack</span>.<span style=color:#a6e22e>AckError</span>.<span style=color:#a6e22e>Message</span>)
+      }
+     <span style=color:#75715e>// 这里注意ackError可能是nil
+</span><span style=color:#75715e></span>      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>ackManager</span>.<span style=color:#a6e22e>Ack</span>(<span style=color:#a6e22e>ack</span>.<span style=color:#a6e22e>AckMessageId</span>, <span style=color:#a6e22e>ackError</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#a6e22e>pubsubLogger</span>.<span style=color:#a6e22e>Warnf</span>(<span style=color:#e6db74>&#34;error %v when trying to notify ack&#34;</span>, <span style=color:#a6e22e>err</span>)
+      }
+   }
+}
+</code></pre></div><p>就是在调用的时候尝试往对应的channel上发送消息，select中有两个注意点，一个在注释中已经说了，因为channel是有缓冲的，所以如果发消息发不进去的话首先一定是重复了，另外channel被关闭或者没有接收端在处理消息。所以这个地方的代码可以优化一下如果发不进去直接进default执行空动作就可以了。这里还有一个微小的风险是这里的c有在执行到的时候有被关闭的可能，虽然ack是顺序的，但是在Get函数中执行clean的时候会关闭channel。如果这里解锁之后发生切换恰巧执行超时ctx取消channel关闭，这里就可能panic。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>m</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>AcknowledgementManager</span>[<span style=color:#a6e22e>TAckResult</span>]) <span style=color:#a6e22e>Ack</span>(<span style=color:#a6e22e>messageID</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>result</span> <span style=color:#a6e22e>TAckResult</span>) <span style=color:#66d9ef>error</span> {
+   <span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>RLock</span>()
+   <span style=color:#a6e22e>c</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>pendingAcks</span>[<span style=color:#a6e22e>messageID</span>]
+   <span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>RUnlock</span>()
+
+   <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;message %s not found or not specified&#34;</span>, <span style=color:#a6e22e>messageID</span>)
+   }
+
+   <span style=color:#66d9ef>select</span> {
+   <span style=color:#75715e>// wait time for outstanding acks
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// that should be instantaneous as the channel is bufferized size 1
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// if this operation takes longer than the waitFunc (defaults to 1s)
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// it probably means that no consumer is waiting for the message ack
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// or it could be duplicated ack for the same message.
+</span><span style=color:#75715e></span>   <span style=color:#66d9ef>case</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>m</span>.<span style=color:#a6e22e>ackTimeoutFunc</span>():
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+   <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>c</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>result</span>:
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+   }
+}
+</code></pre></div><h5 id=为什么包装类是newinstance函数而不是instance实例>为什么包装类是newInstance函数而不是instance实例</h5>
+<p>在源码中我们可以看到pubsub的wrapper结构体中并不是一个pubsub的结构体而是创建一个pubsub的方法。在注册pubsub的时候也是传入的创建pubsub的工厂方法。而在proto rpc方法被调用时会通过<code>s.getInstance(ctx)</code>来获取实例，如果工厂类没有经过任何封装的话，那么每次都是一个新的实例。相关函数如下：</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// 
+</span><span style=color:#75715e></span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>pubsub</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>UnimplementedPubSubServer</span>
+	<span style=color:#a6e22e>getInstance</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#a6e22e>PubSub</span>
+}
+<span style=color:#75715e>// 这里注册时传入的工厂方法经过了mux的封装
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>WithPubSub</span>(<span style=color:#a6e22e>factory</span> <span style=color:#66d9ef>func</span>() <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>PubSub</span>) <span style=color:#a6e22e>option</span> {
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>cf</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>componentsOpts</span>) {
+      <span style=color:#a6e22e>cf</span>.<span style=color:#a6e22e>useGrpcServer</span> = append(<span style=color:#a6e22e>cf</span>.<span style=color:#a6e22e>useGrpcServer</span>, <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>grpc</span>.<span style=color:#a6e22e>Server</span>) {
+         <span style=color:#a6e22e>pubsub</span>.<span style=color:#a6e22e>Register</span>(<span style=color:#a6e22e>s</span>, <span style=color:#a6e22e>mux</span>(<span style=color:#a6e22e>factory</span>))
+      })
+   }
+}
+<span style=color:#75715e>// 每次方法调用的时候都通过getInstance来获取实例。
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>s</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>pubsub</span>) <span style=color:#a6e22e>Init</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>initReq</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubInitRequest</span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubInitResponse</span>, <span style=color:#66d9ef>error</span>) {
+   <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>proto</span>.<span style=color:#a6e22e>PubSubInitResponse</span>{}, <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>getInstance</span>(<span style=color:#a6e22e>ctx</span>).<span style=color:#a6e22e>Init</span>(<span style=color:#a6e22e>contribPubSub</span>.<span style=color:#a6e22e>Metadata</span>{
+      <span style=color:#a6e22e>Base</span>: <span style=color:#a6e22e>contribMetadata</span>.<span style=color:#a6e22e>Base</span>{<span style=color:#a6e22e>Properties</span>: <span style=color:#a6e22e>initReq</span>.<span style=color:#a6e22e>Metadata</span>.<span style=color:#a6e22e>Properties</span>},
+   })
+}
+</code></pre></div><p>那么就是在<code>mux</code>方法中缓存了实例，通过方法源码我们可以看到，通过map持有多个实例，通过锁来控制instance单例的创建。这里之所以不是用一个实例，而是通过mux包装后的方法来获取实例，是为了为不同的component instance创建不同的实例。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>mux</span>[<span style=color:#a6e22e>TComponent</span> <span style=color:#a6e22e>any</span>](<span style=color:#a6e22e>new</span> <span style=color:#66d9ef>func</span>() <span style=color:#a6e22e>TComponent</span>) <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#a6e22e>TComponent</span> {
+   <span style=color:#a6e22e>instances</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sync</span>.<span style=color:#a6e22e>Map</span>{}
+   <span style=color:#a6e22e>firstLoad</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sync</span>.<span style=color:#a6e22e>Mutex</span>{}
+   <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#a6e22e>TComponent</span> {
+      <span style=color:#a6e22e>instanceID</span> <span style=color:#f92672>:=</span> <span style=color:#e6db74>&#34;#default__instance#&#34;</span>
+      <span style=color:#a6e22e>metadata</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>metadata</span>.<span style=color:#a6e22e>FromIncomingContext</span>(<span style=color:#a6e22e>ctx</span>)
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>ok</span> {
+         <span style=color:#a6e22e>instanceIDs</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>metadata</span>.<span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>metadataInstanceID</span>)
+         <span style=color:#66d9ef>if</span> len(<span style=color:#a6e22e>instanceIDs</span>) <span style=color:#f92672>!=</span> <span style=color:#ae81ff>0</span> {
+            <span style=color:#a6e22e>instanceID</span> = <span style=color:#a6e22e>instanceIDs</span>[<span style=color:#ae81ff>0</span>]
+         }
+      }
+      <span style=color:#a6e22e>instance</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>instances</span>.<span style=color:#a6e22e>Load</span>(<span style=color:#a6e22e>instanceID</span>)
+      <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+         <span style=color:#a6e22e>firstLoad</span>.<span style=color:#a6e22e>Lock</span>()
+         <span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>firstLoad</span>.<span style=color:#a6e22e>Unlock</span>()
+         <span style=color:#a6e22e>instance</span>, <span style=color:#a6e22e>ok</span> = <span style=color:#a6e22e>instances</span>.<span style=color:#a6e22e>Load</span>(<span style=color:#a6e22e>instanceID</span>) <span style=color:#75715e>// double check lock
+</span><span style=color:#75715e></span>         <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>ok</span> {
+            <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>instance</span>.(<span style=color:#a6e22e>TComponent</span>)
+         }
+         <span style=color:#a6e22e>instance</span> = new()
+         <span style=color:#a6e22e>instances</span>.<span style=color:#a6e22e>Store</span>(<span style=color:#a6e22e>instanceID</span>, <span style=color:#a6e22e>instance</span>)
+      }
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>instance</span>.(<span style=color:#a6e22e>TComponent</span>)
+   }
+}
+</code></pre></div><p>在什么情况下会发生这种情况呢？在为application配置component的时候有多个component都是此Pluggable component类型的时候。例如下图所示：</p>
+<p><img src=https://user-images.githubusercontent.com/5839364/193684998-5d891e78-4b32-4784-8091-206af4c5cf94.png alt=image></p>
+<h3 id=injector>Injector</h3>
+<p>在启动一个具有Pluggable component的服务的时候，需要确保Pluggable component和daprd挂载了相同的UDS 文件夹，以便可以相互访问。</p>
+<h5 id=挂载>挂载</h5>
+<p><code>dapr.io/unix-domain-socket-path</code></p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>i</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>injector</span>) <span style=color:#a6e22e>getPodPatchOperations</span>(<span style=color:#a6e22e>ar</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>AdmissionReview</span>,
+   <span style=color:#a6e22e>namespace</span>, <span style=color:#a6e22e>image</span>, <span style=color:#a6e22e>imagePullPolicy</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>kubeClient</span> <span style=color:#a6e22e>kubernetes</span>.<span style=color:#a6e22e>Interface</span>, <span style=color:#a6e22e>daprClient</span> <span style=color:#a6e22e>scheme</span>.<span style=color:#a6e22e>Interface</span>,
+) (<span style=color:#a6e22e>patchOps</span> []<span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchOperation</span>, <span style=color:#a6e22e>err</span> <span style=color:#66d9ef>error</span>) {
+   <span style=color:#a6e22e>req</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>ar</span>.<span style=color:#a6e22e>Request</span>
+   <span style=color:#75715e>// ... 格式数据检查
+</span><span style=color:#75715e></span>   <span style=color:#75715e>// 为pod设置uds的volume定义，整合volumeMounts给sidecar用
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>volumeMounts</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>GetVolumeMounts</span>(<span style=color:#a6e22e>pod</span>)
+   <span style=color:#a6e22e>socketVolumeMount</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>GetUnixDomainSocketVolumeMount</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>pod</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>socketVolumeMount</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#a6e22e>volumeMounts</span> = append(<span style=color:#a6e22e>volumeMounts</span>, <span style=color:#f92672>*</span><span style=color:#a6e22e>socketVolumeMount</span>)
+   }
+   <span style=color:#a6e22e>volumeMounts</span> = append(<span style=color:#a6e22e>volumeMounts</span>, <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>VolumeMount</span>{
+      <span style=color:#a6e22e>Name</span>:      <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>TokenVolumeName</span>,
+      <span style=color:#a6e22e>MountPath</span>: <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>TokenVolumeKubernetesMountPath</span>,
+      <span style=color:#a6e22e>ReadOnly</span>:  <span style=color:#66d9ef>true</span>,
+   })
+
+   <span style=color:#75715e>// App containers和 Pluggable区分开来,以及根据`dapr.io/inject-pluggable-components`注解进行自动注入。这两个函数都比较关键会在后面介绍。
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>appContainers</span>, <span style=color:#a6e22e>componentContainers</span>, <span style=color:#a6e22e>injectedComponentContainers</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>i</span>.<span style=color:#a6e22e>splitContainers</span>(<span style=color:#a6e22e>pod</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+	}
+	<span style=color:#a6e22e>componentPatchOps</span>, <span style=color:#a6e22e>componentsSocketVolumeMount</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>PatchOps</span>(<span style=color:#a6e22e>componentContainers</span>, <span style=color:#a6e22e>injectedComponentContainers</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>pod</span>)
+
+
+   <span style=color:#75715e>// 生成sidecar容器，注入volumeMounts
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>sidecarContainer</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>GetSidecarContainer</span>(<span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>ContainerConfig</span>{
+      <span style=color:#75715e>//...
+</span><span style=color:#75715e></span>      <span style=color:#a6e22e>VolumeMounts</span>:                 <span style=color:#a6e22e>volumeMounts</span>,
+      <span style=color:#a6e22e>ComponentsSocketsVolumeMount</span>: <span style=color:#a6e22e>componentsSocketVolumeMount</span>,
+      <span style=color:#a6e22e>RunAsNonRoot</span>:                 <span style=color:#a6e22e>i</span>.<span style=color:#a6e22e>config</span>.<span style=color:#a6e22e>GetRunAsNonRoot</span>(),
+   })
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+   }
+
+   <span style=color:#75715e>// Create the list of patch operations
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>patchOps</span> = []<span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchOperation</span>{}
+
+  <span style=color:#75715e>// patch sidecar 容器
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>patchOps</span> = append(<span style=color:#a6e22e>patchOps</span>,
+      <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchOperation</span>{
+         <span style=color:#a6e22e>Op</span>:    <span style=color:#e6db74>&#34;add&#34;</span>,
+         <span style=color:#a6e22e>Path</span>:  <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchPathContainers</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>&#34;/-&#34;</span>,
+         <span style=color:#a6e22e>Value</span>: <span style=color:#a6e22e>sidecarContainer</span>,
+      },
+      <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>AddDaprEnvVarsToContainers</span>(<span style=color:#a6e22e>appContainers</span>)<span style=color:#f92672>...</span>)
+  <span style=color:#75715e>// 为app容器添加socket volume mount
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>patchOps</span> = append(<span style=color:#a6e22e>patchOps</span>,
+      <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>AddSocketVolumeMountToContainers</span>(<span style=color:#a6e22e>appContainers</span>, <span style=color:#a6e22e>socketVolumeMount</span>)<span style=color:#f92672>...</span>)
+  <span style=color:#75715e>// 这里为 pod 添加 Pluggable 的 volume 以及给 component pod 添加 volume mount
+</span><span style=color:#75715e></span>   <span style=color:#a6e22e>patchOps</span> = append(<span style=color:#a6e22e>patchOps</span>, <span style=color:#a6e22e>componentPatchOps</span><span style=color:#f92672>...</span>)
+	<span style=color:#75715e>// ...
+</span><span style=color:#75715e></span>   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>patchOps</span>, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></div><p><code>splitContainers</code>函数根据pod定义是否包含<code>dapr.io/inject-pluggable-components</code>注解来决定是否启用自动注入pluggable container。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go>
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>i</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>injector</span>) <span style=color:#a6e22e>splitContainers</span>(<span style=color:#a6e22e>pod</span> <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Pod</span>) (<span style=color:#a6e22e>appContainers</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>int</span>]<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Container</span>, <span style=color:#a6e22e>componentContainers</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>int</span>]<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Container</span>, <span style=color:#a6e22e>injectedComponentContainers</span> []<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Container</span>, <span style=color:#a6e22e>err</span> <span style=color:#66d9ef>error</span>) {
+	<span style=color:#a6e22e>an</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>annotations</span>.<span style=color:#a6e22e>New</span>(<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Annotations</span>)
+	<span style=color:#a6e22e>injectionEnabled</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>an</span>.<span style=color:#a6e22e>GetBoolOrDefault</span>(<span style=color:#a6e22e>annotations</span>.<span style=color:#a6e22e>KeyPluggableComponentsInjection</span>, <span style=color:#66d9ef>false</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>injectionEnabled</span> {
+    <span style=color:#75715e>// 列出namespace下的所有component
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>componentsList</span>, <span style=color:#a6e22e>err</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>namespaceFlight</span>.<span style=color:#a6e22e>Do</span>(<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Namespace</span>, <span style=color:#66d9ef>func</span>() (<span style=color:#a6e22e>any</span>, <span style=color:#66d9ef>error</span>) {
+			<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>i</span>.<span style=color:#a6e22e>daprClient</span>.<span style=color:#a6e22e>ComponentsV1alpha1</span>().<span style=color:#a6e22e>Components</span>(<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Namespace</span>).<span style=color:#a6e22e>List</span>(<span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{})
+		})
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+			<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;error when fetching components: %w&#34;</span>, <span style=color:#a6e22e>err</span>)
+		}
+    <span style=color:#75715e>// 自动注入pluggable container
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>injectedComponentContainers</span> = <span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>Injectable</span>(<span style=color:#a6e22e>an</span>.<span style=color:#a6e22e>GetString</span>(<span style=color:#a6e22e>annotations</span>.<span style=color:#a6e22e>KeyAppID</span>), <span style=color:#a6e22e>componentsList</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>v1alpha1</span>.<span style=color:#a6e22e>ComponentList</span>).<span style=color:#a6e22e>Items</span>)
+	}
+  <span style=color:#75715e>// pod注解`dapr.io/pluggable-components`中以`,`分割了pluggable component的container名称。将它们筛选出来就是`componentContainers`.
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>appContainers</span>, <span style=color:#a6e22e>componentContainers</span> = <span style=color:#a6e22e>components</span>.<span style=color:#a6e22e>SplitContainers</span>(<span style=color:#a6e22e>pod</span>)
+	<span style=color:#66d9ef>return</span>
+}
+</code></pre></div><p><code>Injectable</code>函数会筛选出来所有带有<code>dapr.io/component-container</code>注解的，限定app-id列表中包含自己，或者未限定的，将其<code>dapr.io/inject-pluggable-components</code>定义解析后自动注入进来。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Injectable parses the container definition from components annotations returning them as a list. Uses the appID to filter
+</span><span style=color:#75715e>// only the eligble components for such apps avoiding injecting containers that will not be used.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Injectable</span>(<span style=color:#a6e22e>appID</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>components</span> []<span style=color:#a6e22e>componentsapi</span>.<span style=color:#a6e22e>Component</span>) []<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Container</span> {
+	<span style=color:#a6e22e>componentContainers</span> <span style=color:#f92672>:=</span> make([]<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Container</span>, <span style=color:#ae81ff>0</span>)
+	<span style=color:#a6e22e>componentImages</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>bool</span>, <span style=color:#ae81ff>0</span>)
+	<span style=color:#75715e>// 遍历所有components
+</span><span style=color:#75715e></span>	<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>component</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>components</span> {
+    <span style=color:#75715e>// component是否包含dapr.io/component-container注解，这里定义了PluggableComponentContainer基本信息
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>containerAsStr</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>component</span>.<span style=color:#a6e22e>Annotations</span>[<span style=color:#a6e22e>annotations</span>.<span style=color:#a6e22e>KeyPluggableComponentContainer</span>]
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>containerAsStr</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;&#34;</span> {
+			<span style=color:#66d9ef>continue</span>
+		}
+    <span style=color:#75715e>// 反序列化成k8s Container
+</span><span style=color:#75715e></span>		<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>container</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Container</span>
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>Unmarshal</span>([]byte(<span style=color:#a6e22e>containerAsStr</span>), <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>container</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+			<span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Warnf</span>(<span style=color:#e6db74>&#34;could not unmarshal %s error: %v&#34;</span>, <span style=color:#a6e22e>component</span>.<span style=color:#a6e22e>Name</span>, <span style=color:#a6e22e>err</span>)
+			<span style=color:#66d9ef>continue</span>
+		}
+		<span style=color:#75715e>// 如果已经处理过了，一个镜像只需要启动一个实例。因为一个component可能会包含了多个pluggable。这样如果每个component中都定义了这个，就需要去重，因为需且只需启动一份实例。
+</span><span style=color:#75715e></span>		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>componentImages</span>[<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>Image</span>] {
+			<span style=color:#66d9ef>continue</span>
+		}
+		<span style=color:#75715e>// 是否限定了app，如果限定了就需要包含自己才需要注入
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>appScopped</span> <span style=color:#f92672>:=</span> len(<span style=color:#a6e22e>component</span>.<span style=color:#a6e22e>Scopes</span>) <span style=color:#f92672>==</span> <span style=color:#ae81ff>0</span>
+		<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>scoppedApp</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>component</span>.<span style=color:#a6e22e>Scopes</span> {
+			<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>scoppedApp</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>appID</span> {
+				<span style=color:#a6e22e>appScopped</span> = <span style=color:#66d9ef>true</span>
+				<span style=color:#66d9ef>break</span>
+			}
+		}
+		<span style=color:#75715e>// container加入定义中
+</span><span style=color:#75715e></span>		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>appScopped</span> {
+			<span style=color:#a6e22e>componentImages</span>[<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>Image</span>] = <span style=color:#66d9ef>true</span>
+			<span style=color:#75715e>// if container name is not set, the component name will be used ensuring uniqueness
+</span><span style=color:#75715e></span>			<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>Name</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;&#34;</span> {
+				<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>Name</span> = <span style=color:#a6e22e>component</span>.<span style=color:#a6e22e>Name</span>
+			}
+			<span style=color:#a6e22e>componentContainers</span> = append(<span style=color:#a6e22e>componentContainers</span>, <span style=color:#f92672>*</span><span style=color:#a6e22e>container</span>)
+		}
+	}
+
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>componentContainers</span>
+}
+</code></pre></div><p>计算Patch信息，volume、VolumeMounts、环境变量等。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// PatchOps returns the patch operations required to properly bootstrap the pluggable component and the respective volume mount for the sidecar.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>PatchOps</span>(<span style=color:#a6e22e>componentContainers</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>int</span>]<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Container</span>, <span style=color:#a6e22e>injectedContainers</span> []<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Container</span>, <span style=color:#a6e22e>pod</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Pod</span>) ([]<span style=color:#a6e22e>patcher</span>.<span style=color:#a6e22e>PatchOperation</span>, <span style=color:#f92672>*</span><span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>VolumeMount</span>) {
+	<span style=color:#a6e22e>patches</span> <span style=color:#f92672>:=</span> make([]<span style=color:#a6e22e>patcher</span>.<span style=color:#a6e22e>PatchOperation</span>, <span style=color:#ae81ff>0</span>)
+
+	<span style=color:#75715e>// check ...
+</span><span style=color:#75715e></span>
+  <span style=color:#75715e>// 获取Pluggable Components Sockets文件夹，优先级为annotation、env、默认值。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>podAnnotations</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>annotations</span>.<span style=color:#a6e22e>New</span>(<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Annotations</span>)
+	<span style=color:#a6e22e>mountPath</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>podAnnotations</span>.<span style=color:#a6e22e>GetString</span>(<span style=color:#a6e22e>annotations</span>.<span style=color:#a6e22e>KeyPluggableComponentsSocketsFolder</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>mountPath</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;&#34;</span> {
+    <span style=color:#75715e>// 尝试从`DAPR_COMPONENTS_SOCKETS_FOLDER`环境变量中取，还取不到就用默认值`/tmp/dapr-components-sockets`
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>mountPath</span> = <span style=color:#a6e22e>pluggable</span>.<span style=color:#a6e22e>GetSocketFolderPath</span>()
+	}
+	<span style=color:#75715e>// 为pod添加socket 使用的volume
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>volumePatch</span>, <span style=color:#a6e22e>sharedSocketVolumeMount</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>addSharedSocketVolume</span>(<span style=color:#a6e22e>mountPath</span>, <span style=color:#a6e22e>pod</span>)
+	<span style=color:#a6e22e>patches</span> = append(<span style=color:#a6e22e>patches</span>, <span style=color:#a6e22e>volumePatch</span>)
+  <span style=color:#75715e>// 将路径设置到`DAPR_COMPONENT_SOCKETS_FOLDER`环境变量
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>componentsEnvVars</span> <span style=color:#f92672>:=</span> []<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>EnvVar</span>{{
+		<span style=color:#a6e22e>Name</span>:  <span style=color:#a6e22e>componentsUnixDomainSocketMountPathEnvVar</span>,
+		<span style=color:#a6e22e>Value</span>: <span style=color:#a6e22e>sharedSocketVolumeMount</span>.<span style=color:#a6e22e>MountPath</span>,
+	}}
+
+	<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>idx</span>, <span style=color:#a6e22e>container</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>componentContainers</span> {
+    <span style=color:#75715e>// 添加env和volumeMount，仅添加不与container本身定义中冲突的部分。
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>patches</span> = append(<span style=color:#a6e22e>patches</span>, <span style=color:#a6e22e>patcher</span>.<span style=color:#a6e22e>GetEnvPatchOperations</span>(<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>Env</span>, <span style=color:#a6e22e>componentsEnvVars</span>, <span style=color:#a6e22e>idx</span>)<span style=color:#f92672>...</span>)
+		<span style=color:#a6e22e>patches</span> = append(<span style=color:#a6e22e>patches</span>, <span style=color:#a6e22e>patcher</span>.<span style=color:#a6e22e>GetVolumeMountPatchOperations</span>(<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>VolumeMounts</span>, []<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>VolumeMount</span>{<span style=color:#a6e22e>sharedSocketVolumeMount</span>}, <span style=color:#a6e22e>idx</span>)<span style=color:#f92672>...</span>)
+	}
+
+	<span style=color:#a6e22e>podVolumes</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>bool</span>, len(<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Volumes</span>))
+	<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>volume</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Volumes</span> {
+		<span style=color:#a6e22e>podVolumes</span>[<span style=color:#a6e22e>volume</span>.<span style=color:#a6e22e>Name</span>] = <span style=color:#66d9ef>true</span>
+	}
+
+	<span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>container</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>injectedContainers</span> {
+		<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>Env</span> = append(<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>Env</span>, <span style=color:#a6e22e>componentsEnvVars</span><span style=color:#f92672>...</span>)
+		<span style=color:#75715e>// mount volume as empty dir by default.
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>patches</span> = append(<span style=color:#a6e22e>patches</span>, <span style=color:#a6e22e>emptyVolumePatches</span>(<span style=color:#a6e22e>container</span>, <span style=color:#a6e22e>podVolumes</span>, <span style=color:#a6e22e>pod</span>)<span style=color:#f92672>...</span>)
+		<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>VolumeMounts</span> = append(<span style=color:#a6e22e>container</span>.<span style=color:#a6e22e>VolumeMounts</span>, <span style=color:#a6e22e>sharedSocketVolumeMount</span>)
+
+		<span style=color:#a6e22e>patches</span> = append(<span style=color:#a6e22e>patches</span>, <span style=color:#a6e22e>patcher</span>.<span style=color:#a6e22e>PatchOperation</span>{
+			<span style=color:#a6e22e>Op</span>:    <span style=color:#e6db74>&#34;add&#34;</span>,
+			<span style=color:#a6e22e>Path</span>:  <span style=color:#a6e22e>patcher</span>.<span style=color:#a6e22e>PatchPathContainers</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>&#34;/-&#34;</span>,
+			<span style=color:#a6e22e>Value</span>: <span style=color:#a6e22e>container</span>,
+		})
+	}
+
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>patches</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>sharedSocketVolumeMount</span>
+}
+</code></pre></div><h5 id=volume>volume</h5>
+<p>添加共享socket volume到pod定义中。sharedSocketVolumeMount的添加在patch里。</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>addSharedSocketVolume</span>(<span style=color:#a6e22e>mountPath</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>pod</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Pod</span>) (<span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchOperation</span>, <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>VolumeMount</span>) {
+	<span style=color:#a6e22e>sharedSocketVolume</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sharedComponentsSocketVolume</span>()
+	<span style=color:#a6e22e>sharedSocketVolumeMount</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sharedComponentsUnixSocketVolumeMount</span>(<span style=color:#a6e22e>mountPath</span>)
+
+	<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>volumePatch</span> <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchOperation</span>
+
+	<span style=color:#66d9ef>if</span> len(<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Volumes</span>) <span style=color:#f92672>==</span> <span style=color:#ae81ff>0</span> {
+		<span style=color:#a6e22e>volumePatch</span> = <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchOperation</span>{
+			<span style=color:#a6e22e>Op</span>:    <span style=color:#e6db74>&#34;add&#34;</span>,
+			<span style=color:#a6e22e>Path</span>:  <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchPathVolumes</span>,
+			<span style=color:#a6e22e>Value</span>: []<span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Volume</span>{<span style=color:#a6e22e>sharedSocketVolume</span>},
+		}
+	} <span style=color:#66d9ef>else</span> {
+		<span style=color:#a6e22e>volumePatch</span> = <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchOperation</span>{
+			<span style=color:#a6e22e>Op</span>:    <span style=color:#e6db74>&#34;add&#34;</span>,
+      <span style=color:#75715e>// 如果已经存在的话就是添加到一个已经存在的数组里
+</span><span style=color:#75715e></span>			<span style=color:#a6e22e>Path</span>:  <span style=color:#a6e22e>sidecar</span>.<span style=color:#a6e22e>PatchPathVolumes</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>&#34;/-&#34;</span>,
+			<span style=color:#a6e22e>Value</span>: <span style=color:#a6e22e>sharedSocketVolume</span>,
+		}
+	}
+	<span style=color:#75715e>// volume添加到pod
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Volumes</span> = append(<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Volumes</span>, <span style=color:#a6e22e>sharedSocketVolume</span>)
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>volumePatch</span>, <span style=color:#a6e22e>sharedSocketVolumeMount</span>
+}
+</code></pre></div><p>Volume和VolumeMount定义</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// sharedComponentsSocketVolume creates a shared unix socket volume to be used by sidecar.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>sharedComponentsSocketVolume</span>() <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Volume</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>Volume</span>{
+		<span style=color:#a6e22e>Name</span>: <span style=color:#a6e22e>componentsUnixDomainSocketVolumeName</span>,<span style=color:#75715e>//&#34;dapr-components-unix-domain-socket&#34;
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>VolumeSource</span>: <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>VolumeSource</span>{
+			<span style=color:#a6e22e>EmptyDir</span>: <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>EmptyDirVolumeSource</span>{},
+		},
+	}
+}
+
+<span style=color:#75715e>// sharedComponentsUnixSocketVolumeMount creates a shared unix socket volume mount to be used by pluggable component.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>sharedComponentsUnixSocketVolumeMount</span>(<span style=color:#a6e22e>mountPath</span> <span style=color:#66d9ef>string</span>) <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>VolumeMount</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>corev1</span>.<span style=color:#a6e22e>VolumeMount</span>{
+		<span style=color:#a6e22e>Name</span>:      <span style=color:#a6e22e>componentsUnixDomainSocketVolumeName</span>,<span style=color:#75715e>//&#34;dapr-components-unix-domain-socket&#34;
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>MountPath</span>: <span style=color:#a6e22e>mountPath</span>,
+	}
+}
+</code></pre></div><p>Tip: unix domain socket与Pluggable component共用同一个volume，因为Pluggable discovery在初始化阶段，然后才会初始化http和GRPC server，所以一起用应该是没有影响的。</p>
+<p>参考</p>
+<p><a href=https://github.com/dapr/dapr/pull/5406/files>https://github.com/dapr/dapr/pull/5406/files</a></p>
+<p>new injector pr <a href=https://github.com/dapr/dapr/pull/5935/files>https://github.com/dapr/dapr/pull/5935/files</a></p>
+<p>pluggable component annotionshttps://github.com/dapr/dapr/issues/5668</p>
+<p>初步提出prhttps://github.com/dapr/dapr/issues/3787</p>
+<p>完善prhttps://github.com/dapr/dapr/issues/4925</p>
+<p><a href=https://docs.dapr.io/operations/components/pluggable-components-registration/>https://docs.dapr.io/operations/components/pluggable-components-registration/</a></p>
+<p><a href=https://github.com/dapr/dapr/pull/4348>https://github.com/dapr/dapr/pull/4348</a></p>
+<p><a href=https://github.com/dapr/dapr/issues/5402>https://github.com/dapr/dapr/issues/5402</a></p>
+<p>进行中pr</p>
+<p><a href=https://github.com/dapr/dapr/pull/6202>https://github.com/dapr/dapr/pull/6202</a> 允许daprd等待/重试 pluggable组件的注册和初始化</p>
+<div class="text-muted mt-5 pt-3 border-top">
+</div>
+</div>
+</main>
+</div>
+</div>
+<footer class="bg-dark py-5 row d-print-none">
+<div class="container-fluid mx-sm-5">
+<div class=row>
+<div class="col-6 col-sm-4 text-xs-center order-sm-2">
+</div>
+<div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+</div>
+<div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+</div>
+</div>
+</div>
+</footer>
+</div>
+<script src=https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js integrity=sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN crossorigin=anonymous></script>
+<script src=https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js integrity=sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF crossorigin=anonymous></script>
+<script src=/js/main.min.f8dc12214b1b557b8ee4603ff35df42ebeef990cf05109190b758b04eac03307.js integrity="sha256-+NwSIUsbVXuO5GA/8130Lr7vmQzwUQkZC3WLBOrAMwc=" crossorigin=anonymous></script>
+</body>
+</html>
