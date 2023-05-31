@@ -54,7 +54,7 @@ helm search repo dapr --devel --versions
 
 ### Dubug 控制面
 
-新建一个values.yal文件，要对哪个组件启动debug就把对应组件的debug.enable改为true.可以选择的组件有` dapr_operator dapr_placement dapr_sentry dapr_sidecar_injector`
+新建一个values.yml文件，要对哪个组件启动debug就把对应组件的debug.enable改为true.可以选择的组件有` dapr_operator dapr_placement dapr_sentry dapr_sidecar_injector`
 
 ```yaml
 global:
@@ -116,7 +116,7 @@ dapr-sidecar-injector-56cd4c8cf7-nm49f   0/1     Running   0          11s
 
 > 这里是按照目前的官网教程来的，其实如果你已经安装了dapr的情况下这一步可以略过。
 
-新建一个values.yal文件，写入以下内容
+新建一个values.yml文件，写入以下内容
 
 ```yaml
 global:
@@ -143,7 +143,7 @@ index c63d06d..5bd50af 100644
          app: node
        annotations:
          dapr.io/enabled: "true"
-+        dapr.io/sidecar-readiness-probe-delay-seconds: "3000"
++        dapr.io/sidecar-liveness-probe-delay-seconds: "3000"
 +        dapr.io/enable-debug: "true"
          dapr.io/app-id: "nodeapp"
          dapr.io/app-port: "3000"
@@ -223,9 +223,6 @@ kubectl port-forward service/nodeapp --address='0.0.0.0' 3500:3500
 ```sh
 curl --request POST --data "@sample.json" --header Content-Type:application/json --header dapr-app-id:nodeapp http://localhost:3500/neworder
 ```
-
-
-
 
 
 
