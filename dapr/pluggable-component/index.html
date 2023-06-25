@@ -31,7 +31,7 @@ initPluggableComponents是Pluggable 组件自动发现的入口，在initRuntime
 // initPluggableComponents discover pluggable components and initialize with their respective registries. func (a *DaprRuntime) initPluggableComponents() { if runtime.GOOS == &#34;windows&#34; { log.Debugf(&#34;the current OS does not support pluggable components feature, skipping initialization&#34;) return } if err := pluggable.Discover(a.ctx); err != nil { log.Errorf(&#34;could not initialize pluggable components %v&#34;, err) } } Discover函数从componentsSocketPath下面发现文件，根据文件mode判断是否是Unix domain socket。这也是dapr文档里提到为什么一定需要pluggable component先启动的原因。然后通过注册的callbackFunc func(name string, dialer GRPCConnectionDialer)向DefaultRegistry来注册对应component的初始化函数。其他内置的组件也会在初始化的时候注册初始化函数，因此在注册完成后运行时对组件的处理上就“一视同仁”了。
 // Discover discover the pluggable components and callback the service discovery with the given component name and grpc dialer."><meta itemprop=datePublished content="2023-03-07T21:09:38+08:00">
 <meta itemprop=dateModified content="2023-03-07T21:09:38+08:00">
-<meta itemprop=wordCount content="3274">
+<meta itemprop=wordCount content="3282">
 <meta itemprop=keywords content><meta name=twitter:card content="summary">
 <meta name=twitter:title content="Pluggable Component">
 <meta name=twitter:description content="本文主要从dapr运行时、SDK和部署3部分的源码来介绍dapr的Pluggable component
@@ -75,6 +75,7 @@ initPluggableComponents是Pluggable 组件自动发现的入口，在initRuntime
 </li>
 <ul>
 <li class="collapse show" id=dapr>
+<a class="td-sidebar-link td-sidebar-link__page" id=m-daprhttp-wasm-middleware href=/dapr/http-wasm-middleware/>Http Wasm Middleware</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-daprdebug-dapr-k8s href=/dapr/debug-dapr-k8s/>Debug Dapr In K8s</a>
 <a class="td-sidebar-link td-sidebar-link__page" id=m-daprdeploying-pluggable-k8s href=/dapr/deploying-pluggable-k8s/>Deploying Pluggable K8s</a>
 <a class="td-sidebar-link td-sidebar-link__page active" id=m-daprpluggable-component href=/dapr/pluggable-component/>Pluggable Component</a>
@@ -1191,6 +1192,9 @@ initPluggableComponents是Pluggable 组件自动发现的入口，在initRuntime
 }
 </code></pre></div><p>Tip: unix domain socket与Pluggable component共用同一个volume，因为Pluggable discovery在初始化阶段，然后才会初始化http和GRPC server，所以一起用应该是没有影响的。</p>
 <p>参考</p>
+<p>介绍文档https://docs.dapr.io/developing-applications/develop-components/pluggable-components/</p>
+<p>overview <a href=https://docs.dapr.io/developing-applications/develop-components/pluggable-components/pluggable-components-overview/>https://docs.dapr.io/developing-applications/develop-components/pluggable-components/pluggable-components-overview/</a></p>
+<p>Register a pluggable component <a href=https://docs.dapr.io/operations/components/pluggable-components-registration/>https://docs.dapr.io/operations/components/pluggable-components-registration/</a></p>
 <p><a href=https://github.com/dapr/dapr/pull/5406/files>https://github.com/dapr/dapr/pull/5406/files</a></p>
 <p>new injector pr <a href=https://github.com/dapr/dapr/pull/5935/files>https://github.com/dapr/dapr/pull/5935/files</a></p>
 <p>pluggable component annotionshttps://github.com/dapr/dapr/issues/5668</p>
