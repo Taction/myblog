@@ -1215,6 +1215,12 @@ Tip: unix domain socket与Pluggable component共用同一个volume，因为Plugg
 
 参考
 
+介绍文档https://docs.dapr.io/developing-applications/develop-components/pluggable-components/
+
+overview https://docs.dapr.io/developing-applications/develop-components/pluggable-components/pluggable-components-overview/
+
+Register a pluggable component https://docs.dapr.io/operations/components/pluggable-components-registration/
+
 https://github.com/dapr/dapr/pull/5406/files
 
 new injector pr https://github.com/dapr/dapr/pull/5935/files
