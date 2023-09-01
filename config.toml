@@ -1,4 +1,4 @@
-baseURL = "https://taction.top/"
+baseURL = "https://old.taction.top"
 languageCode = "zh"
 title = "Taction's Blog"
 theme = "docsy"
